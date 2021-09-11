@@ -1,10 +1,10 @@
-package shape_test
+package reflectshape_test
 
 import (
 	"reflect"
 	"testing"
 
-	"github.com/podhmo/reflect-openapi/pkg/shape"
+	reflectshape "github.com/podhmo/reflect-shape"
 )
 
 type Article struct {
@@ -12,7 +12,7 @@ type Article struct {
 }
 
 func TestInfo(t *testing.T) {
-	got := shape.Extract(Article{})
+	got := reflectshape.Extract(Article{})
 
 	t.Run("Shape", func(t *testing.T) {
 		got := got.Shape()
@@ -30,7 +30,7 @@ func TestInfo(t *testing.T) {
 	})
 	t.Run("GetPackage", func(t *testing.T) {
 		got := got.GetPackage()
-		want := "github.com/podhmo/reflect-openapi/pkg/shape_test"
+		want := "github.com/podhmo/reflect-shape_test"
 		if want != got {
 			t.Errorf("expected %q, but %q", want, got)
 		}

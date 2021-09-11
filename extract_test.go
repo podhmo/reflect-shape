@@ -1,4 +1,4 @@
-package shape_test
+package reflectshape_test
 
 import (
 	"context"
@@ -7,7 +7,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/podhmo/reflect-openapi/pkg/shape"
+	reflectshape "github.com/podhmo/reflect-shape"
 )
 
 type Person struct {
@@ -17,8 +17,8 @@ type Person struct {
 
 func TestPrimitive(t *testing.T) {
 	t.Run("int", func(t *testing.T) {
-		got := shape.Extract(1)
-		if _, ok := got.(shape.Primitive); !ok {
+		got := reflectshape.Extract(1)
+		if _, ok := got.(reflectshape.Primitive); !ok {
 			t.Errorf("expected Primitive, but %T", got)
 		}
 
@@ -30,21 +30,21 @@ func TestPrimitive(t *testing.T) {
 
 	t.Run("new type", func(t *testing.T) {
 		type MyInt int
-		got := shape.Extract(MyInt(1))
-		if _, ok := got.(shape.Primitive); !ok {
+		got := reflectshape.Extract(MyInt(1))
+		if _, ok := got.(reflectshape.Primitive); !ok {
 			t.Errorf("expected Primitive, but %T", got)
 		}
 
 		// format
-		if got, want := fmt.Sprintf("%v", got), "github.com/podhmo/reflect-openapi/pkg/shape_test.MyInt"; want != got {
+		if got, want := fmt.Sprintf("%v", got), "github.com/podhmo/reflect-shape_test.MyInt"; want != got {
 			t.Errorf("expected string expression is %q but %q", want, got)
 		}
 	})
 
 	t.Run("type alias", func(t *testing.T) {
 		type MyInt = int
-		got := shape.Extract(MyInt(1))
-		if _, ok := got.(shape.Primitive); !ok {
+		got := reflectshape.Extract(MyInt(1))
+		if _, ok := got.(reflectshape.Primitive); !ok {
 			t.Errorf("expected Primitive, but %T", got)
 		}
 
@@ -57,8 +57,8 @@ func TestPrimitive(t *testing.T) {
 
 func TestStruct(t *testing.T) {
 	t.Run("user defined", func(t *testing.T) {
-		got := shape.Extract(Person{})
-		v, ok := got.(shape.Struct)
+		got := reflectshape.Extract(Person{})
+		v, ok := got.(reflectshape.Struct)
 		if !ok {
 			t.Errorf("expected Struct, but %T", got)
 		}
@@ -75,15 +75,15 @@ func TestStruct(t *testing.T) {
 		}
 
 		// format
-		if got, want := fmt.Sprintf("%v", got), "github.com/podhmo/reflect-openapi/pkg/shape_test.Person"; want != got {
+		if got, want := fmt.Sprintf("%v", got), "github.com/podhmo/reflect-shape_test.Person"; want != got {
 			t.Errorf("expected string expression is %q but %q", want, got)
 		}
 	})
 
 	t.Run("time.Time", func(t *testing.T) {
 		var z time.Time
-		got := shape.Extract(z)
-		if _, ok := got.(shape.Struct); !ok {
+		got := reflectshape.Extract(z)
+		if _, ok := got.(reflectshape.Struct); !ok {
 			t.Errorf("expected Struct, but %T", got)
 		}
 
@@ -97,8 +97,8 @@ func TestStruct(t *testing.T) {
 func TestContainer(t *testing.T) {
 	t.Run("slice", func(t *testing.T) {
 		t.Run("primitive", func(t *testing.T) {
-			got := shape.Extract([]int{})
-			v, ok := got.(shape.Container)
+			got := reflectshape.Extract([]int{})
+			v, ok := got.(reflectshape.Container)
 			if !ok {
 				t.Errorf("expected Container, but %T", got)
 			}
@@ -111,8 +111,8 @@ func TestContainer(t *testing.T) {
 			}
 		})
 		t.Run("primitive has len", func(t *testing.T) {
-			got := shape.Extract([]int{1, 2, 3})
-			v, ok := got.(shape.Container)
+			got := reflectshape.Extract([]int{1, 2, 3})
+			v, ok := got.(reflectshape.Container)
 			if !ok {
 				t.Errorf("expected Container, but %T", got)
 			}
@@ -125,8 +125,8 @@ func TestContainer(t *testing.T) {
 			}
 		})
 		t.Run("struct", func(t *testing.T) {
-			got := shape.Extract([]Person{})
-			v, ok := got.(shape.Container)
+			got := reflectshape.Extract([]Person{})
+			v, ok := got.(reflectshape.Container)
 			if !ok {
 				t.Errorf("expected Container, but %T", got)
 			}
@@ -135,7 +135,7 @@ func TestContainer(t *testing.T) {
 			}
 
 			// format
-			if got, want := fmt.Sprintf("%v", got), "slice[github.com/podhmo/reflect-openapi/pkg/shape_test.Person]"; want != got {
+			if got, want := fmt.Sprintf("%v", got), "slice[github.com/podhmo/reflect-shape_test.Person]"; want != got {
 				t.Errorf("expected string expression is %q but %q", want, got)
 			}
 		})
@@ -143,8 +143,8 @@ func TestContainer(t *testing.T) {
 
 	t.Run("map", func(t *testing.T) {
 		t.Run("primitive", func(t *testing.T) {
-			got := shape.Extract(map[string]int{})
-			v, ok := got.(shape.Container)
+			got := reflectshape.Extract(map[string]int{})
+			v, ok := got.(reflectshape.Container)
 			if !ok {
 				t.Errorf("expected Container, but %T", got)
 			}
@@ -158,8 +158,8 @@ func TestContainer(t *testing.T) {
 			}
 		})
 		t.Run("primitive has len", func(t *testing.T) {
-			got := shape.Extract(map[string]int{"foo": 20})
-			v, ok := got.(shape.Container)
+			got := reflectshape.Extract(map[string]int{"foo": 20})
+			v, ok := got.(reflectshape.Container)
 			if !ok {
 				t.Errorf("expected Container, but %T", got)
 			}
@@ -173,8 +173,8 @@ func TestContainer(t *testing.T) {
 			}
 		})
 		t.Run("struct", func(t *testing.T) {
-			got := shape.Extract(map[string][]Person{})
-			v, ok := got.(shape.Container)
+			got := reflectshape.Extract(map[string][]Person{})
+			v, ok := got.(reflectshape.Container)
 			if !ok {
 				t.Errorf("expected Container, but %T", got)
 			}
@@ -183,7 +183,7 @@ func TestContainer(t *testing.T) {
 			}
 
 			// format
-			if got, want := fmt.Sprintf("%v", got), "map[string, slice[github.com/podhmo/reflect-openapi/pkg/shape_test.Person]]"; want != got {
+			if got, want := fmt.Sprintf("%v", got), "map[string, slice[github.com/podhmo/reflect-shape_test.Person]]"; want != got {
 				t.Errorf("expected string expression is %q but %q", want, got)
 			}
 		})
@@ -200,12 +200,12 @@ func ListUser(ctx context.Context, input ListUserInput) ([]Person, error) {
 }
 
 func TestFunction(t *testing.T) {
-	got := shape.Extract(ListUser)
-	_, ok := got.(shape.Function)
+	got := reflectshape.Extract(ListUser)
+	_, ok := got.(reflectshape.Function)
 	if !ok {
 		t.Errorf("expected Container, but %T", got)
 	}
-	if got, want := fmt.Sprintf("%v", got), "github.com/podhmo/reflect-openapi/pkg/shape_test.ListUser(context.Context, github.com/podhmo/reflect-openapi/pkg/shape_test.ListUserInput) (slice[github.com/podhmo/reflect-openapi/pkg/shape_test.Person], error)"; want != got {
+	if got, want := fmt.Sprintf("%v", got), "github.com/podhmo/reflect-shape_test.ListUser(context.Context, github.com/podhmo/reflect-shape_test.ListUserInput) (slice[github.com/podhmo/reflect-shape_test.Person], error)"; want != got {
 		t.Errorf("expected string expression is %q but %q", want, got)
 	}
 }
@@ -242,19 +242,19 @@ func TestRecursion(t *testing.T) {
 		},
 		{
 			name:   "Father",
-			output: "********github.com/podhmo/reflect-openapi/pkg/shape_test.Person",
+			output: "********github.com/podhmo/reflect-shape_test.Person",
 		},
 		{
 			name:   "Mother",
-			output: "*github.com/podhmo/reflect-openapi/pkg/shape_test.Person",
+			output: "*github.com/podhmo/reflect-shape_test.Person",
 		},
 		{
 			name:   "Children",
-			output: "slice[github.com/podhmo/reflect-openapi/pkg/shape_test.Person]",
+			output: "slice[github.com/podhmo/reflect-shape_test.Person]",
 		},
 	}
 
-	e := &shape.Extractor{Seen: map[reflect.Type]shape.Shape{}}
+	e := &reflectshape.Extractor{Seen: map[reflect.Type]reflectshape.Shape{}}
 	ob := Person{}
 	e.Extract(ob)
 
@@ -282,10 +282,10 @@ func TestDeref(t *testing.T) {
 	}
 
 	ob := &Person{}
-	s := shape.Extract(ob)
+	s := reflectshape.Extract(ob)
 
-	got := s.(shape.Struct).Fields.Values[0]
-	want := shape.Primitive{}
+	got := s.(reflectshape.Struct).Fields.Values[0]
+	want := reflectshape.Primitive{}
 	fmt.Printf("%T %T\n", got, want)
 
 	if got, want := reflect.TypeOf(got), reflect.TypeOf(want); !got.AssignableTo(want) {

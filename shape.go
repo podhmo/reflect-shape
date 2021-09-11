@@ -1,4 +1,4 @@
-package shape
+package reflectshape
 
 import (
 	"fmt"

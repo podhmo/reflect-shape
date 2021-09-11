@@ -25,7 +25,7 @@ func TestIt(t *testing.T) {
 		// methods is not supported yet.
 		{
 			Msg:     "method.0",
-			Input:   l.LookupCommentTextFromFunc, // github.com/podhmo/reflect-openapi/pkg/comment.(*Lookup).LookupCommentTextFromFunc-fm
+			Input:   l.LookupCommentTextFromFunc, // github.com/podhmo/reflect-shape/comment.(*Lookup).LookupCommentTextFromFunc-fm
 			Comment: "",
 		},
 	}
