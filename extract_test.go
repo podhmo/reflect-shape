@@ -200,13 +200,60 @@ func ListUser(ctx context.Context, input ListUserInput) ([]Person, error) {
 }
 
 func TestFunction(t *testing.T) {
-	got := reflectshape.Extract(ListUser)
-	_, ok := got.(reflectshape.Function)
-	if !ok {
-		t.Errorf("expected Container, but %T", got)
+	cases := []struct {
+		msg    string
+		fn     interface{}
+		output string
+	}{
+		{
+			msg:    "actual-func",
+			fn:     ListUser,
+			output: "github.com/podhmo/reflect-shape_test.ListUser(context.Context, github.com/podhmo/reflect-shape_test.ListUserInput) (slice[github.com/podhmo/reflect-shape_test.Person], error)",
+		},
+		{
+			msg:    "simple",
+			fn:     func(x, y int) int { return 0 },
+			output: "github.com/podhmo/reflect-shape_test.TestFunction.func1(int, int) (int)",
+		},
+		{
+			msg:    "with-context",
+			fn:     func(ctx context.Context, x, y int) int { return 0 },
+			output: "github.com/podhmo/reflect-shape_test.TestFunction.func2(context.Context, int, int) (int)",
+		},
+		{
+			msg:    "with-error",
+			fn:     func(x, y int) (int, error) { return 0, nil },
+			output: "github.com/podhmo/reflect-shape_test.TestFunction.func3(int, int) (int, error)",
+		},
+		{
+			msg:    "without-returns",
+			fn:     func(s string) {},
+			output: "github.com/podhmo/reflect-shape_test.TestFunction.func4(string) ()",
+		},
+		{
+			msg:    "without-params",
+			fn:     func() string { return "" },
+			output: "github.com/podhmo/reflect-shape_test.TestFunction.func5() (string)",
+		},
+		{
+			msg:    "with-pointer",
+			fn:     func(*string) string { return "" },
+			output: "github.com/podhmo/reflect-shape_test.TestFunction.func6(*string) (string)",
+		},
 	}
-	if got, want := fmt.Sprintf("%v", got), "github.com/podhmo/reflect-shape_test.ListUser(context.Context, github.com/podhmo/reflect-shape_test.ListUserInput) (slice[github.com/podhmo/reflect-shape_test.Person], error)"; want != got {
-		t.Errorf("expected string expression is %q but %q", want, got)
+
+	for _, c := range cases {
+		c := c
+		t.Run(c.msg, func(t *testing.T) {
+			got := reflectshape.Extract(c.fn)
+			_, ok := got.(reflectshape.Function)
+			if !ok {
+				t.Errorf("expected Container, but %T", got)
+			}
+			if got, want := fmt.Sprintf("%v", got), c.output; want != got {
+				t.Errorf("expected string expression is %q but %q", want, got)
+			}
+		})
 	}
 }
 
@@ -286,9 +333,35 @@ func TestDeref(t *testing.T) {
 
 	got := s.(reflectshape.Struct).Fields.Values[0]
 	want := reflectshape.Primitive{}
-	fmt.Printf("%T %T\n", got, want)
+	t.Logf("%T %T\n", got, want)
 
 	if got, want := reflect.TypeOf(got), reflect.TypeOf(want); !got.AssignableTo(want) {
 		t.Errorf("unexpected type is found. expected %s, but %s", got, want)
 	}
+}
+
+func TestPool(t *testing.T) {
+	e := &reflectshape.Extractor{Seen: map[reflect.Type]reflectshape.Shape{}}
+
+	f := func() {}
+	g := func() {}
+
+	t.Run("f,g", func(t *testing.T) {
+		s0 := e.Extract(f)
+		s1 := e.Extract(g)
+		t.Logf("s0=%v s1=%v", s0.GetIdentity(), s1.GetIdentity())
+
+		if reflect.DeepEqual(s0, s1) {
+			t.Errorf("unexpected equal %v %v", s0, s1)
+		}
+	})
+	t.Run("f,f", func(t *testing.T) {
+		s0 := e.Extract(f)
+		s1 := e.Extract(f)
+		t.Logf("s0=%v s1=%v", s0.GetIdentity(), s1.GetIdentity())
+
+		if !reflect.DeepEqual(s0, s1) {
+			t.Errorf("unexpected not equal %v %v", s0, s1)
+		}
+	})
 }

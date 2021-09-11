@@ -6,13 +6,11 @@ import (
 	"runtime"
 	"strconv"
 	"strings"
+
+	"github.com/podhmo/reflect-shape/arglist"
 )
 
-// TODO: 埋め込み
-// TODO: コメント
-// TODO: tag
-// TODO: InfoをExtractするとStack Oveflow
-
+type Identity string
 type Kind reflect.Kind
 
 func (k Kind) MarshalJSON() ([]byte, error) {
@@ -32,10 +30,13 @@ type Shape interface {
 
 	ResetName(string)
 	ResetPackage(string)
+	ResetReflectType(reflect.Type)
 
 	GetReflectKind() reflect.Kind
 	GetReflectType() reflect.Type
 	GetReflectValue() reflect.Value
+
+	GetIdentity() Identity
 
 	Clone() Shape
 	deref(seen map[reflect.Type]Shape) Shape
@@ -48,6 +49,10 @@ type ShapeMap struct {
 	Values []Shape  `json:"values"`
 }
 
+func (m *ShapeMap) Len() int {
+	return len(m.Keys)
+}
+
 type Info struct {
 	Kind    Kind   `json:"kind"`
 	Name    string `json:"name"`
@@ -57,6 +62,7 @@ type Info struct {
 	completed    bool // complete means that shape does not have any refs
 	reflectType  reflect.Type
 	reflectValue reflect.Value
+	identity     Identity
 }
 
 func (v *Info) info() *Info {
@@ -90,8 +96,20 @@ func (v *Info) GetReflectKind() reflect.Kind {
 func (v *Info) GetReflectType() reflect.Type {
 	return v.reflectType
 }
+func (v *Info) ResetReflectType(rt reflect.Type) {
+	v.reflectType = rt
+	v.identity = ""
+}
 func (v *Info) GetReflectValue() reflect.Value {
 	return v.reflectValue
+}
+func (v *Info) GetIdentity() Identity {
+	if v.identity != "" {
+		return v.identity
+	}
+	rt := v.GetReflectType()
+	v.identity = Identity(fmt.Sprintf("%s:%s@%d", v.GetFullName(), rt, rt.Size()))
+	return v.identity
 }
 func (v *Info) Clone() *Info {
 	return &Info{
@@ -127,6 +145,8 @@ func (v Primitive) deref(seen map[reflect.Type]Shape) Shape {
 
 type FieldMetadata struct {
 	Anonymous bool // embedded?
+	FieldName string
+	Required  bool
 }
 
 type Struct struct {
@@ -137,14 +157,23 @@ type Struct struct {
 }
 
 func (v *Struct) FieldName(i int) string {
-	name := v.Fields.Keys[i]
+	name := v.Metadata[i].FieldName
+	if name != "" {
+		return name
+	}
+
 	if val, ok := v.Tags[i].Lookup("json"); ok {
 		name = strings.SplitN(val, ",", 2)[0] // todo: omitempty, inline
+		v.Metadata[i].FieldName = name        // cache
+		return name
 	}
 	if val, ok := v.Tags[i].Lookup("form"); ok {
 		name = strings.SplitN(val, ",", 2)[0]
+		v.Metadata[i].FieldName = name // cache
+		return name
 	}
-	return name
+
+	return v.Fields.Keys[i]
 }
 
 func (v Struct) Format(f fmt.State, c rune) {
@@ -361,6 +390,9 @@ func (v *ref) deref(seen map[reflect.Type]Shape) Shape {
 
 type Extractor struct {
 	Seen map[reflect.Type]Shape
+
+	ArglistLookup  *arglist.Lookup
+	RevisitArglist bool
 }
 
 var rnil reflect.Value
@@ -370,8 +402,27 @@ func init() {
 }
 
 func (e *Extractor) Extract(ob interface{}) Shape {
+	rt := reflect.TypeOf(ob)
+	if s, ok := e.Seen[rt]; ok {
+		if rt.Kind() != reflect.Func {
+			return s
+		}
+		fn := s.Clone().(Function)
+		// TODO: cache
+
+		fullname := runtime.FuncForPC(reflect.ValueOf(ob).Pointer()).Name()
+		parts := strings.Split(fullname, ".")
+		pkgPath := strings.Join(parts[:len(parts)-1], ".")
+		fn.Info.Name = parts[len(parts)-1]
+		fn.Info.Package = pkgPath
+
+		if e.RevisitArglist && e.ArglistLookup != nil {
+			fixupArglist(e.ArglistLookup, &fn, ob, fullname)
+		}
+		return fn
+	}
 	path := []string{""}
-	rts := []reflect.Type{reflect.TypeOf(ob)}   // history
+	rts := []reflect.Type{rt}                   // history
 	rvs := []reflect.Value{reflect.ValueOf(ob)} // history
 	s := e.extract(path, rts, rvs, ob)
 	return s.deref(e.Seen)
@@ -541,7 +592,6 @@ func (e *Extractor) extract(
 				append(rvs, rnil),
 				nil)
 		}
-
 		rnames := make([]string, rt.NumOut())
 		returns := make([]Shape, rt.NumOut())
 		for i := 0; i < len(returns); i++ {
@@ -565,6 +615,11 @@ func (e *Extractor) extract(
 				reflectValue: rv,
 			},
 		}
+		// fixup names
+		if e.ArglistLookup != nil && ob != nil {
+			fixupArglist(e.ArglistLookup, &s, ob, name)
+		}
+
 		return e.save(rt, s)
 	case reflect.Interface:
 		names := make([]string, rt.NumMethod())
@@ -594,11 +649,4 @@ func (e *Extractor) extract(
 		}
 		return e.save(rt, s)
 	}
-}
-
-func Extract(ob interface{}) Shape {
-	e := &Extractor{
-		Seen: map[reflect.Type]Shape{},
-	}
-	return e.Extract(ob)
 }
