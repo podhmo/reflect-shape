@@ -97,15 +97,72 @@ func Sprintf2(ctx context.Context, fmt string, vs ...interface{}) (s string, err
 
 func TestInspectAnonymousFunc(t *testing.T) {
 	l := NewLookup()
-	fn := func(x string) (string, error) { return "", nil }
-	ns, err := l.LookupNameSetFromFunc(fn)
-	if err == nil {
-		t.Errorf("error is expected, but not error is occured")
+
+	inner0 := func(x string) (string, error) { return "", nil }
+	var outer0inner func(string) string
+	outer0 := func(x string) (string, error) {
+		outer0inner := func(y string) string { return "" }
+		return outer0inner(x), nil
 	}
-	if len(ns.Args) != 0 {
-		t.Errorf("len(ns.Args) == 0 is expected, but got %d", len(ns.Args))
+	_ = outer0
+
+	cases := []struct {
+		msg    string
+		name   string
+		fn     interface{}
+		want   NameSet
+		hasErr bool
+	}{
+		{
+			msg:  "simple",
+			name: "",
+			fn:   inner0,
+			want: NameSet{
+				Name:    "",
+				Args:    []string{"x"},
+				Returns: []string{"ret0", "ret1"},
+			},
+		},
+		{
+			msg:  "nested",
+			name: "",
+			fn:   outer0inner,
+			want: NameSet{
+				Name:    "",
+				Args:    []string{"y"},
+				Returns: []string{"ret0"},
+			},
+			hasErr: true, // not supported yet
+		},
 	}
-	if len(ns.Returns) != 0 {
-		t.Errorf("len(ns.Returns) == 0 is expected, but got %d", len(ns.Returns))
+
+	for _, c := range cases {
+		c := c
+		t.Run(c.msg, func(t *testing.T) {
+			if c.fn == nil {
+				t.Fatalf("unexpected input %+v", c.fn)
+			}
+
+			ns, err := l.LookupNameSetFromFunc(c.fn)
+			if c.hasErr {
+				if err == nil {
+					t.Errorf("error is expected, but not error is occured")
+				}
+				if len(ns.Args) != 0 {
+					t.Errorf("len(ns.Args) == 0 is expected, but got %d", len(ns.Args))
+				}
+				if len(ns.Returns) != 0 {
+					t.Errorf("len(ns.Returns) == 0 is expected, but got %d", len(ns.Returns))
+				}
+				return
+			}
+
+			if err != nil {
+				t.Fatalf("unexpected error %+v", err)
+			}
+			if want, got := c.want, ns; !reflect.DeepEqual(want, got) {
+				t.Errorf("want:\n\t%#+v\nbut got:\n\t%#+v", want, got)
+			}
+		})
 	}
 }
