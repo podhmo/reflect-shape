@@ -101,7 +101,8 @@ func (l *Lookup) LookupNameSetFromFunc(fn interface{}) (NameSet, error) {
 
 	for _, decl := range f.Decls {
 		// fmt.Printf("%T (%d, %d) -> ok=%v\n", decl, decl.Pos(), decl.End(), (decl.Pos() <= pos && pos <= decl.End()))
-		if !(decl.Pos() <= pos && pos <= decl.End()) {
+		isInner := decl.Pos() <= pos && pos <= decl.End()
+		if !isInner {
 			continue
 		}
 
@@ -141,7 +142,6 @@ func (l *Lookup) LookupNameSetFromFunc(fn interface{}) (NameSet, error) {
 					// fmt.Printf("update %T %d (%d, %d) -> ok=%v\n", node, pos, node.Pos(), node.End(), isInner)
 					// printer.Fprint(os.Stdout, l.fset, node)
 				}
-				return true
 			}
 			return true
 		})
