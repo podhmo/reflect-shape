@@ -3,12 +3,15 @@ package reflectshape_test
 import (
 	"context"
 	"fmt"
+	"io"
 	"reflect"
 	"testing"
 	"time"
 
 	reflectshape "github.com/podhmo/reflect-shape"
 )
+
+type EmitFunc func(ctx context.Context, w io.Writer) error
 
 type Person struct {
 	Name string `json:"name"`
@@ -239,6 +242,14 @@ func TestFunction(t *testing.T) {
 			msg:    "with-pointer",
 			fn:     func(*string) string { return "" },
 			output: "github.com/podhmo/reflect-shape_test.TestFunction.func6(*string) (string)",
+		},
+		{
+			msg: "var",
+			fn: func() interface{} {
+				var handler EmitFunc = func(context.Context, io.Writer) error { return nil }
+				return handler
+			}(),
+			output: "github.com/podhmo/reflect-shape_test.TestFunction.func7.1(context.Context, io.Writer) (error)",
 		},
 	}
 
