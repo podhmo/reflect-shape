@@ -14,6 +14,8 @@ import (
 // TODO: merge with ../comment
 
 type Lookup struct {
+	DisableDefaultName bool
+
 	fset *token.FileSet
 
 	fileCache map[string]*ast.File
@@ -86,7 +88,7 @@ func (l *Lookup) LookupNameSetFromFunc(fn interface{}) (NameSet, error) {
 
 	if ob := f.Scope.Lookup(funcname); ob != nil {
 		if decl, ok := ob.Decl.(*ast.FuncDecl); ok {
-			r, err := InspectFunc(decl)
+			r, err := InspectFunc(decl, !l.DisableDefaultName)
 			if err != nil {
 				return NameSet{Name: funcname}, err
 			}
@@ -139,7 +141,7 @@ func (l *Lookup) LookupNameSetFromFunc(fn interface{}) (NameSet, error) {
 				} else if innerMost.Cost > cost {
 					innerMost.Lit = target
 					innerMost.Cost = cost
-					// fmt.Printf("update %T %d (%d, %d) -> ok=%v\n", node, pos, node.Pos(), node.End(), isInner)
+					// fmt.Printf("update %T %d (%d, %d) -,> ok=%v\n", node, pos, node.Pos(), node.End(), isInner)
 					// printer.Fprint(os.Stdout, l.fset, node)
 				}
 			}
@@ -151,13 +153,13 @@ func (l *Lookup) LookupNameSetFromFunc(fn interface{}) (NameSet, error) {
 		}
 
 		if innerMost.Lit == nil {
-			ns, err := InspectFunc(decl) // maybe method
+			ns, err := InspectFunc(decl, !l.DisableDefaultName) // maybe method
 			if err != nil {
 				return NameSet{Name: funcname}, fmt.Errorf("inspect func: %w", err)
 			}
 			return ns, nil
 		} else {
-			ns, err := InspectFuncLit(innerMost.Lit)
+			ns, err := InspectFuncLit(innerMost.Lit, !l.DisableDefaultName)
 			if err != nil {
 				return NameSet{Name: funcname}, fmt.Errorf("inspect funclit: %w", err)
 			}

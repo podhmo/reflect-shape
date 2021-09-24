@@ -20,13 +20,17 @@ func (ns NameSet) IsMethod() bool {
 	return ns.Recv != ""
 }
 
-func walkFuncType(typ *ast.FuncType, ns *NameSet) error {
+func walkFuncType(typ *ast.FuncType, ns *NameSet, needDefaultName bool) error {
 	if typ.Params != nil {
 		var names []string
 		i := 0
 		for _, x := range typ.Params.List {
 			if len(x.Names) == 0 {
-				names = append(names, fmt.Sprintf("arg%d", i))
+				if needDefaultName {
+					names = append(names, "")
+				} else {
+					names = append(names, fmt.Sprintf("arg%d", i))
+				}
 				i++
 				continue
 			}
@@ -45,7 +49,11 @@ func walkFuncType(typ *ast.FuncType, ns *NameSet) error {
 		i := 0
 		for _, x := range typ.Results.List {
 			if len(x.Names) == 0 {
-				names = append(names, fmt.Sprintf("ret%d", i))
+				if needDefaultName {
+					names = append(names, fmt.Sprintf("ret%d", i))
+				} else {
+					names = append(names, "")
+				}
 				i++
 				continue
 			}
@@ -58,22 +66,22 @@ func walkFuncType(typ *ast.FuncType, ns *NameSet) error {
 	return nil
 }
 
-func InspectFunc(decl *ast.FuncDecl) (NameSet, error) {
+func InspectFunc(decl *ast.FuncDecl, needDefaultName bool) (NameSet, error) {
 	var r NameSet
 	r.Name = decl.Name.Name
 	if decl.Recv != nil {
 		r.Recv = decl.Recv.List[0].Names[0].Name
 	}
-	if err := walkFuncType(decl.Type, &r); err != nil {
+	if err := walkFuncType(decl.Type, &r, needDefaultName); err != nil {
 		return r, err
 	}
 	return r, nil
 }
 
-func InspectFuncLit(lit *ast.FuncLit) (NameSet, error) {
+func InspectFuncLit(lit *ast.FuncLit, needDefaultName bool) (NameSet, error) {
 	var r NameSet
 	r.Name = ""
-	if err := walkFuncType(lit.Type, &r); err != nil {
+	if err := walkFuncType(lit.Type, &r, needDefaultName); err != nil {
 		return r, err
 	}
 	return r, nil

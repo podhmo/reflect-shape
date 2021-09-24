@@ -18,7 +18,7 @@ func inspectFuncFromFile(f *ast.File, name string) (NameSet, error) {
 	if !ok {
 		return NameSet{}, fmt.Errorf("unexpected decl %T", ob)
 	}
-	return InspectFunc(decl)
+	return InspectFunc(decl, true)
 }
 
 func TestInspectFunc(t *testing.T) {
