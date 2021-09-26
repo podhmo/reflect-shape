@@ -41,7 +41,7 @@ func TestMethod(t *testing.T) {
 	t.Run("args", func(t *testing.T) {
 		{
 			name := "ExportedMethod"
-			args := []string{"ctx", "foo"}
+			args := []string{"s", "ctx", "foo"}
 			t.Run(name, func(t *testing.T) {
 				m := mmap.Functions[name]
 				if want, got := args, m.Params.Keys; !reflect.DeepEqual(want, got) {
@@ -51,7 +51,7 @@ func TestMethod(t *testing.T) {
 		}
 		{
 			name := "AnotherExportedMethod"
-			args := []string{"ctx", "another"}
+			args := []string{"s", "ctx", "another"}
 			t.Run(name, func(t *testing.T) {
 				m := mmap.Functions[name]
 				if want, got := args, m.Params.Keys; !reflect.DeepEqual(want, got) {

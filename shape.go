@@ -257,6 +257,9 @@ func (v *Struct) Methods() FunctionSet {
 				method,
 			)
 			fn := shape.(Function)
+			if v.extractor.ArglistLookup != nil { // always revisit
+				fixupArglist(v.extractor.ArglistLookup, &fn, method.Func.Interface(), name)
+			}
 			methodMap.Names = append(methodMap.Names, name)
 			methodMap.Functions[name] = fn
 		}
@@ -344,7 +347,6 @@ func (v Container) deref(seen map[reflect.Type]Shape) Shape {
 
 type Function struct {
 	*Info
-
 	Params  ShapeMap `json:"params"`  // for function's In
 	Returns ShapeMap `json:"returns"` // for function's Out
 }
@@ -471,7 +473,7 @@ func (e *Extractor) Extract(ob interface{}) Shape {
 		fn.Info.Package = pkgPath
 
 		if e.RevisitArglist && e.ArglistLookup != nil {
-			fixupArglist(e.ArglistLookup, &fn, ob, fullname, false)
+			fixupArglist(e.ArglistLookup, &fn, ob, fullname)
 		}
 		return fn
 	}
@@ -629,13 +631,11 @@ func (e *Extractor) extract(
 		return e.save(rt, s)
 	case reflect.Func:
 		name := info.Name
-		isMethod := false
 		if ob != nil {
 			if m, ok := ob.(reflect.Method); ok {
 				ob = m.Func.Interface()
 				pkgPath = m.PkgPath
 				name = m.Name
-				isMethod = true
 			} else {
 				fullname := runtime.FuncForPC(reflect.ValueOf(ob).Pointer()).Name()
 				parts := strings.Split(fullname, ".")
@@ -681,7 +681,7 @@ func (e *Extractor) extract(
 		}
 		// fixup names
 		if e.ArglistLookup != nil && ob != nil {
-			fixupArglist(e.ArglistLookup, &s, ob, name, isMethod)
+			fixupArglist(e.ArglistLookup, &s, ob, name)
 		}
 
 		return e.save(rt, s)
