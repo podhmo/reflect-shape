@@ -3,6 +3,7 @@ package reflectshape_test
 import (
 	"context"
 	"reflect"
+	"strings"
 	"testing"
 
 	reflectshape "github.com/podhmo/reflect-shape"
@@ -11,9 +12,9 @@ import (
 
 type something struct{}
 
-func (s *something) ExportedMethod(ctx context.Context) string        { return "" }
-func (s *something) unexportedMethod(ctx context.Context) string      { return "" } //nolint
-func (s *something) AnotherExportedMethod(ctx context.Context) string { return "" }
+func (s *something) ExportedMethod(ctx context.Context, foo string) string            { return "" }
+func (s *something) unexportedMethod(ctx context.Context) string                      { return "" } //nolint
+func (s *something) AnotherExportedMethod(ctx context.Context, another string) string { return "" }
 
 func TestMethod(t *testing.T) {
 	e := reflectshape.NewExtractor()
@@ -25,27 +26,38 @@ func TestMethod(t *testing.T) {
 	mmap := s.Methods()
 
 	t.Run("exported method", func(t *testing.T) {
-		if got := len(mmap.Keys); got != 2 {
+		if got := len(mmap.Names); got != 2 {
 			t.Errorf("unexpected number of methods found, %d", got)
 		}
 	})
 	t.Run("unexported method", func(t *testing.T) {
-		for _, name := range s.Fields.Keys {
-			if name == "unexportedMethod" {
-				t.Errorf("unexported method is not extracting target")
+		for _, name := range mmap.Names {
+			if strings.ToLower(name[:1]) == name[:1] {
+				t.Errorf("unexported method is found, %s", name)
 			}
 		}
 	})
-	t.Run("types", func(t *testing.T) {
-		for i, m := range mmap.Values {
-			name := mmap.Keys[i]
-			mt, ok := reflect.TypeOf(target).MethodByName(name)
-			if !ok {
-				t.Fatalf("method %s is not found", name)
-			}
-			if want, got := mt, m.GetReflectType(); !reflect.DeepEqual(want, got) {
-				t.Errorf("want method %s type:\n\t%v\nbut got:\n\t%v", name, want, got)
-			}
+
+	t.Run("args", func(t *testing.T) {
+		{
+			name := "ExportedMethod"
+			args := []string{"ctx", "foo"}
+			t.Run(name, func(t *testing.T) {
+				m := mmap.Functions[name]
+				if want, got := args, m.Params.Keys; !reflect.DeepEqual(want, got) {
+					t.Errorf("want %v but got %v", want, got)
+				}
+			})
+		}
+		{
+			name := "AnotherExportedMethod"
+			args := []string{"ctx", "another"}
+			t.Run(name, func(t *testing.T) {
+				m := mmap.Functions[name]
+				if want, got := args, m.Params.Keys; !reflect.DeepEqual(want, got) {
+					t.Errorf("want %v but got %v", want, got)
+				}
+			})
 		}
 	})
 }
