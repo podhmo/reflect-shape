@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 	"reflect"
+	"regexp"
 	"testing"
 	"time"
 
@@ -216,32 +217,32 @@ func TestFunction(t *testing.T) {
 		{
 			msg:    "simple",
 			fn:     func(x, y int) int { return 0 },
-			output: "github.com/podhmo/reflect-shape_test.TestFunction.func1(int, int) (int)",
+			output: "github.com/podhmo/reflect-shape_test.TestFunction.func(int, int) (int)",
 		},
 		{
 			msg:    "with-context",
 			fn:     func(ctx context.Context, x, y int) int { return 0 },
-			output: "github.com/podhmo/reflect-shape_test.TestFunction.func2(context.Context, int, int) (int)",
+			output: "github.com/podhmo/reflect-shape_test.TestFunction.func(context.Context, int, int) (int)",
 		},
 		{
 			msg:    "with-error",
 			fn:     func(x, y int) (int, error) { return 0, nil },
-			output: "github.com/podhmo/reflect-shape_test.TestFunction.func3(int, int) (int, error)",
+			output: "github.com/podhmo/reflect-shape_test.TestFunction.func(int, int) (int, error)",
 		},
 		{
 			msg:    "without-returns",
 			fn:     func(s string) {},
-			output: "github.com/podhmo/reflect-shape_test.TestFunction.func4(string) ()",
+			output: "github.com/podhmo/reflect-shape_test.TestFunction.func(string) ()",
 		},
 		{
 			msg:    "without-params",
 			fn:     func() string { return "" },
-			output: "github.com/podhmo/reflect-shape_test.TestFunction.func5() (string)",
+			output: "github.com/podhmo/reflect-shape_test.TestFunction.func() (string)",
 		},
 		{
 			msg:    "with-pointer",
 			fn:     func(*string) string { return "" },
-			output: "github.com/podhmo/reflect-shape_test.TestFunction.func6(*string) (string)",
+			output: "github.com/podhmo/reflect-shape_test.TestFunction.func(*string) (string)",
 		},
 		{
 			msg: "var",
@@ -249,9 +250,20 @@ func TestFunction(t *testing.T) {
 				var handler EmitFunc = func(context.Context, io.Writer) error { return nil }
 				return handler
 			}(),
-			output: "github.com/podhmo/reflect-shape_test.TestFunction.func7.1(context.Context, io.Writer) (error)",
+			output: "github.com/podhmo/reflect-shape_test.TestFunction.func(context.Context, io.Writer) (error)",
+		},
+		{
+			msg: "var-nil",
+			fn: func() interface{} {
+				var handler EmitFunc
+				return handler
+			}(),
+			output: "(context.Context, io.Writer) (error)",
 		},
 	}
+
+	rx := regexp.MustCompile(`func\d+(\.\d+)?\(`) // closure name is func<N> or func<M>.<N>
+	normalize := func(s string) string { return rx.ReplaceAllString(s, "func(") }
 
 	for _, c := range cases {
 		c := c
@@ -261,7 +273,7 @@ func TestFunction(t *testing.T) {
 			if !ok {
 				t.Errorf("expected Container, but %T", got)
 			}
-			if got, want := fmt.Sprintf("%v", got), c.output; want != got {
+			if got, want := normalize(fmt.Sprintf("%v", got)), c.output; want != got {
 				t.Errorf("expected string expression is %q but %q", want, got)
 			}
 		})
