@@ -53,13 +53,13 @@ func (m *ShapeMap) Len() int {
 	return len(m.Keys)
 }
 
-type FunctionMap struct {
-	Keys   []string   `json:"keys"`
-	Values []Function `json:"values"`
+type FunctionSet struct {
+	Names     []string            `json:"names"`
+	Functions map[string]Function `json:"values"`
 }
 
-func (m *FunctionMap) Len() int {
-	return len(m.Keys)
+func (m *FunctionSet) Len() int {
+	return len(m.Names)
 }
 
 type Info struct {
@@ -222,31 +222,25 @@ func (v Struct) deref(seen map[reflect.Type]Shape) Shape {
 	return v
 }
 
-func (v *Struct) Methods() FunctionMap {
-	methodMap := FunctionMap{}
+func (v *Struct) Methods() FunctionSet {
+	methodMap := FunctionSet{Functions: map[string]Function{}}
 	rt := v.reflectType
-	rv := v.reflectValue
 
 	for i := v.GetLv(); i == 0; i-- {
 		rt = rt.Elem()
-		rv = rv.Elem()
 	}
 
 	seen := map[string]bool{}
-	candidates := []struct {
-		rt reflect.Type
-		rv reflect.Value
-	}{{rt, rv}, {reflect.PtrTo(rt), rv.Addr()}}
-	for _, item := range candidates {
-		rt := item.rt
-		rv := item.rv
+	candidates := []reflect.Type{rt, reflect.PtrTo(rt)}
 
+	for _, rt := range candidates {
 		n := rt.NumMethod()
+		path := []string{rt.Name()}
 		rts := []reflect.Type{rt}
 		rvs := []reflect.Value{reflect.ValueOf(nil)} // xxx
 		for i := 0; i < n; i++ {
-			m := rt.Method(i)
-			name := m.Name
+			method := rt.Method(i)
+			name := method.Name
 			if strings.ToUpper(name[:1]) != name[:1] {
 				continue
 			}
@@ -256,13 +250,15 @@ func (v *Struct) Methods() FunctionMap {
 			}
 			seen[name] = true
 
-			mv := rv.Method(i)
-			shape := v.extractor.extract([]string{v.Name}, append(rts, m.Type), append(rvs, mv), nil)
+			shape := v.extractor.extract(
+				append(path, name),
+				append(rts, method.Type),
+				append(rvs, method.Func),
+				method,
+			)
 			fn := shape.(Function)
-
-			// fmt.Println(v.extractor.ArglistLookup.LookupNameSetFromFunc(rv.MethodByName(name).Interface()))
-			methodMap.Keys = append(methodMap.Keys, name)
-			methodMap.Values = append(methodMap.Values, fn)
+			methodMap.Names = append(methodMap.Names, name)
+			methodMap.Functions[name] = fn
 		}
 	}
 	return methodMap
@@ -348,6 +344,7 @@ func (v Container) deref(seen map[reflect.Type]Shape) Shape {
 
 type Function struct {
 	*Info
+
 	Params  ShapeMap `json:"params"`  // for function's In
 	Returns ShapeMap `json:"returns"` // for function's Out
 }
@@ -474,7 +471,7 @@ func (e *Extractor) Extract(ob interface{}) Shape {
 		fn.Info.Package = pkgPath
 
 		if e.RevisitArglist && e.ArglistLookup != nil {
-			fixupArglist(e.ArglistLookup, &fn, ob, fullname)
+			fixupArglist(e.ArglistLookup, &fn, ob, fullname, false)
 		}
 		return fn
 	}
@@ -632,11 +629,19 @@ func (e *Extractor) extract(
 		return e.save(rt, s)
 	case reflect.Func:
 		name := info.Name
+		isMethod := false
 		if ob != nil {
-			fullname := runtime.FuncForPC(reflect.ValueOf(ob).Pointer()).Name()
-			parts := strings.Split(fullname, ".")
-			pkgPath = strings.Join(parts[:len(parts)-1], ".")
-			name = parts[len(parts)-1]
+			if m, ok := ob.(reflect.Method); ok {
+				ob = m.Func.Interface()
+				pkgPath = m.PkgPath
+				name = m.Name
+				isMethod = true
+			} else {
+				fullname := runtime.FuncForPC(reflect.ValueOf(ob).Pointer()).Name()
+				parts := strings.Split(fullname, ".")
+				pkgPath = strings.Join(parts[:len(parts)-1], ".")
+				name = parts[len(parts)-1]
+			}
 		}
 
 		pnames := make([]string, rt.NumIn())
@@ -676,7 +681,7 @@ func (e *Extractor) extract(
 		}
 		// fixup names
 		if e.ArglistLookup != nil && ob != nil {
-			fixupArglist(e.ArglistLookup, &s, ob, name)
+			fixupArglist(e.ArglistLookup, &s, ob, name, isMethod)
 		}
 
 		return e.save(rt, s)
