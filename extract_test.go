@@ -262,7 +262,7 @@ func TestFunction(t *testing.T) {
 		},
 	}
 
-	rx := regexp.MustCompile(`func\d(\.\d)?\(`) // closure name is func<N> or func<M>.<N>
+	rx := regexp.MustCompile(`func\d+(\.\d+)?\(`) // closure name is func<N> or func<M>.<N>
 	normalize := func(s string) string { return rx.ReplaceAllString(s, "func(") }
 
 	for _, c := range cases {
