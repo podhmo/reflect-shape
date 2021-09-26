@@ -15,13 +15,22 @@ func fixupArglist(lookup *arglist.Lookup, fn *Function, ob interface{}, fullname
 	if err != nil {
 		log.Printf("function %q, arglist lookup is failed %v", fullname, err)
 	}
-	if len(nameset.Args) != len(params) {
-		log.Printf("the length of arguments is mismatch, %d != %d", len(nameset.Args), len(params))
+
+	d := 0
+	if nameset.Recv != "" { // is method
+		d = 1
+	}
+
+	if len(nameset.Args) != len(params)-d {
+		log.Printf("the length of arguments is mismatch, got=%d != want=%d", len(nameset.Args), len(params)-d)
 	} else {
+		if d > 0 {
+			nameset.Args = append([]string{nameset.Recv}, nameset.Args...)
+		}
 		fn.Params.Keys = nameset.Args
 	}
 	if len(nameset.Returns) != len(returns) {
-		log.Printf("the length of returns is mismatch, %d != %d", len(nameset.Returns), len(returns))
+		log.Printf("the length of returns is mismatch, got=%d != want=%d", len(nameset.Returns), len(returns))
 	} else {
 		fn.Returns.Keys = nameset.Returns
 	}

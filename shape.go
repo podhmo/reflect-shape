@@ -53,6 +53,15 @@ func (m *ShapeMap) Len() int {
 	return len(m.Keys)
 }
 
+type FunctionSet struct {
+	Names     []string            `json:"names"`
+	Functions map[string]Function `json:"values"`
+}
+
+func (m *FunctionSet) Len() int {
+	return len(m.Names)
+}
+
 type Info struct {
 	Kind    Kind   `json:"kind"`
 	Name    string `json:"name"`
@@ -63,6 +72,7 @@ type Info struct {
 	reflectType  reflect.Type
 	reflectValue reflect.Value
 	identity     Identity
+	extractor    *Extractor
 }
 
 func (v *Info) info() *Info {
@@ -120,6 +130,7 @@ func (v *Info) Clone() *Info {
 		reflectType:  v.reflectType,
 		reflectValue: v.reflectValue,
 		completed:    v.completed,
+		extractor:    v.extractor,
 	}
 }
 
@@ -209,6 +220,51 @@ func (v Struct) deref(seen map[reflect.Type]Shape) Shape {
 		v.Fields.Values[i] = e.deref(seen)
 	}
 	return v
+}
+
+func (v *Struct) Methods() FunctionSet {
+	methodMap := FunctionSet{Functions: map[string]Function{}}
+	rt := v.reflectType
+
+	for i := v.GetLv(); i == 0; i-- {
+		rt = rt.Elem()
+	}
+
+	seen := map[string]bool{}
+	candidates := []reflect.Type{rt, reflect.PtrTo(rt)}
+
+	for _, rt := range candidates {
+		n := rt.NumMethod()
+		path := []string{rt.Name()}
+		rts := []reflect.Type{rt}
+		rvs := []reflect.Value{reflect.ValueOf(nil)} // xxx
+		for i := 0; i < n; i++ {
+			method := rt.Method(i)
+			name := method.Name
+			if strings.ToUpper(name[:1]) != name[:1] {
+				continue
+			}
+
+			if _, ok := seen[name]; ok {
+				continue
+			}
+			seen[name] = true
+
+			shape := v.extractor.extract(
+				append(path, name),
+				append(rts, method.Type),
+				append(rvs, method.Func),
+				method,
+			)
+			fn := shape.(Function)
+			if v.extractor.ArglistLookup != nil { // always revisit
+				fixupArglist(v.extractor.ArglistLookup, &fn, method.Func.Interface(), name)
+			}
+			methodMap.Names = append(methodMap.Names, name)
+			methodMap.Functions[name] = fn
+		}
+	}
+	return methodMap
 }
 
 type Interface struct {
@@ -463,6 +519,7 @@ func (e *Extractor) extract(
 		Package:      pkgPath,
 		reflectType:  rt,
 		reflectValue: rv,
+		extractor:    e,
 	}
 	ref := &ref{Info: info, originalRT: rt}
 	e.Seen[rt] = ref
@@ -575,10 +632,16 @@ func (e *Extractor) extract(
 	case reflect.Func:
 		name := info.Name
 		if ob != nil {
-			fullname := runtime.FuncForPC(reflect.ValueOf(ob).Pointer()).Name()
-			parts := strings.Split(fullname, ".")
-			pkgPath = strings.Join(parts[:len(parts)-1], ".")
-			name = parts[len(parts)-1]
+			if m, ok := ob.(reflect.Method); ok {
+				ob = m.Func.Interface()
+				pkgPath = m.PkgPath
+				name = m.Name
+			} else {
+				fullname := runtime.FuncForPC(reflect.ValueOf(ob).Pointer()).Name()
+				parts := strings.Split(fullname, ".")
+				pkgPath = strings.Join(parts[:len(parts)-1], ".")
+				name = parts[len(parts)-1]
+			}
 		}
 
 		pnames := make([]string, rt.NumIn())
@@ -613,6 +676,7 @@ func (e *Extractor) extract(
 				Package:      pkgPath,
 				reflectType:  rt,
 				reflectValue: rv,
+				extractor:    e,
 			},
 		}
 		// fixup names
