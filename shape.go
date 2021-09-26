@@ -53,6 +53,15 @@ func (m *ShapeMap) Len() int {
 	return len(m.Keys)
 }
 
+type FunctionMap struct {
+	Keys   []string   `json:"keys"`
+	Values []Function `json:"values"`
+}
+
+func (m *FunctionMap) Len() int {
+	return len(m.Keys)
+}
+
 type Info struct {
 	Kind    Kind   `json:"kind"`
 	Name    string `json:"name"`
@@ -63,6 +72,7 @@ type Info struct {
 	reflectType  reflect.Type
 	reflectValue reflect.Value
 	identity     Identity
+	extractor    *Extractor
 }
 
 func (v *Info) info() *Info {
@@ -120,6 +130,7 @@ func (v *Info) Clone() *Info {
 		reflectType:  v.reflectType,
 		reflectValue: v.reflectValue,
 		completed:    v.completed,
+		extractor:    v.extractor,
 	}
 }
 
@@ -209,6 +220,52 @@ func (v Struct) deref(seen map[reflect.Type]Shape) Shape {
 		v.Fields.Values[i] = e.deref(seen)
 	}
 	return v
+}
+
+func (v *Struct) Methods() FunctionMap {
+	methodMap := FunctionMap{}
+	rt := v.reflectType
+	rv := v.reflectValue
+
+	for i := v.GetLv(); i == 0; i-- {
+		rt = rt.Elem()
+		rv = rv.Elem()
+	}
+
+	seen := map[string]bool{}
+	candidates := []struct {
+		rt reflect.Type
+		rv reflect.Value
+	}{{rt, rv}, {reflect.PtrTo(rt), rv.Addr()}}
+	for _, item := range candidates {
+		rt := item.rt
+		rv := item.rv
+
+		n := rt.NumMethod()
+		rts := []reflect.Type{rt}
+		rvs := []reflect.Value{reflect.ValueOf(nil)} // xxx
+		for i := 0; i < n; i++ {
+			m := rt.Method(i)
+			name := m.Name
+			if strings.ToUpper(name[:1]) != name[:1] {
+				continue
+			}
+
+			if _, ok := seen[name]; ok {
+				continue
+			}
+			seen[name] = true
+
+			mv := rv.Method(i)
+			shape := v.extractor.extract([]string{v.Name}, append(rts, m.Type), append(rvs, mv), nil)
+			fn := shape.(Function)
+
+			// fmt.Println(v.extractor.ArglistLookup.LookupNameSetFromFunc(rv.MethodByName(name).Interface()))
+			methodMap.Keys = append(methodMap.Keys, name)
+			methodMap.Values = append(methodMap.Values, fn)
+		}
+	}
+	return methodMap
 }
 
 type Interface struct {
@@ -463,6 +520,7 @@ func (e *Extractor) extract(
 		Package:      pkgPath,
 		reflectType:  rt,
 		reflectValue: rv,
+		extractor:    e,
 	}
 	ref := &ref{Info: info, originalRT: rt}
 	e.Seen[rt] = ref
@@ -613,6 +671,7 @@ func (e *Extractor) extract(
 				Package:      pkgPath,
 				reflectType:  rt,
 				reflectValue: rv,
+				extractor:    e,
 			},
 		}
 		// fixup names
