@@ -53,6 +53,15 @@ func (m *ShapeMap) Len() int {
 	return len(m.Keys)
 }
 
+func (m *ShapeMap) Get(k string) (Shape, bool) {
+	for i, name := range m.Keys {
+		if name == k {
+			return m.Values[i], true
+		}
+	}
+	return nil, false
+}
+
 type FunctionSet struct {
 	Names     []string            `json:"names"`
 	Functions map[string]Function `json:"values"`
@@ -60,6 +69,11 @@ type FunctionSet struct {
 
 func (m *FunctionSet) Len() int {
 	return len(m.Names)
+}
+
+func (m *FunctionSet) Get(k string) (Function, bool) {
+	v, ok := m.Functions[k]
+	return v, ok
 }
 
 type Info struct {
