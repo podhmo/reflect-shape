@@ -1,0 +1,6 @@
+function "", arglist lookup is failed cannot find runtime.Func
+the length of returns is mismatch, got=0 != want=1
+----------------------------------------
+00:reflectshape.Function	type="HelloFunc"=#0	foo.HelloFunc
+01:  arg[0]="args0"	reflectshape.Primitive	type="string"	string
+01:  ret[0]="ret0"	reflectshape.Primitive	type="string"	string
