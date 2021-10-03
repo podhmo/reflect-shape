@@ -260,6 +260,14 @@ func TestFunction(t *testing.T) {
 			}(),
 			output: "func(context.Context, io.Writer) (error)",
 		},
+		{
+			msg: "var-nil",
+			fn: func() interface{} {
+				var handler EmitFunc
+				return handler
+			}(),
+			output: "func(context.Context, io.Writer) (error)",
+		},
 	}
 
 	rx := regexp.MustCompile(`func\d+(\.\d+)?\(`) // closure name is func<N> or func<M>.<N>

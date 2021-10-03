@@ -1,6 +1,7 @@
 package reflectshape
 
 import (
+	"context"
 	"fmt"
 	"reflect"
 	"runtime"
@@ -468,9 +469,13 @@ type Extractor struct {
 }
 
 var rnil reflect.Value
+var rcontextType reflect.Type
+var rerrorType reflect.Type
 
 func init() {
 	rnil = reflect.ValueOf(nil)
+	rcontextType = reflect.TypeOf(func(ctx context.Context) {}).In(0)
+	rerrorType = reflect.TypeOf(func(ctx error) {}).In(0)
 }
 
 func (e *Extractor) Extract(ob interface{}) Shape {
@@ -671,11 +676,19 @@ func (e *Extractor) extract(
 				append(rts, v),
 				append(rvs, rnil),
 				nil)
-			argname := "args" + strconv.Itoa(i) //
-			if arg.GetReflectKind() == reflect.Func {
-				argname = arg.GetName()
+
+			if v.Kind() == reflect.Func {
+				pnames[i] = arg.GetName()
+			} else {
+				switch v {
+				case rcontextType:
+					pnames[i] = "ctx"
+				case rerrorType:
+					pnames[i] = "err"
+				default:
+					pnames[i] = "args" + strconv.Itoa(i) //
+				}
 			}
-			pnames[i] = argname
 			params[i] = arg
 		}
 		rnames := make([]string, rt.NumOut())
