@@ -1,8 +1,12 @@
 package main
 
 import (
+	"context"
+	"io/ioutil"
 	"log"
 	"os"
+	"os/exec"
+	"path/filepath"
 	"text/template"
 )
 
@@ -45,9 +49,34 @@ func main() {
 
 func run() error {
 	t := template.Must(template.New("code").Parse(code))
-	return t.Execute(os.Stdout, map[string]string{
+	d, err := ioutil.TempDir(".", ".reflect-shape")
+	if err != nil {
+		return err
+	}
+	defer func() {
+		log.Println("remove all", d)
+		if err := os.RemoveAll(d); err != nil {
+			log.Println("!? something wrong in os.RemoveAll(),", err)
+		}
+	}()
+
+	f, err := os.Create(filepath.Join(d, "main.go"))
+	if err != nil {
+		return err
+	}
+	defer f.Close()
+
+	log.Println("create", filepath.Join(d, "main.go"))
+	if err := t.Execute(f, map[string]string{
 		"Path":      "github.com/podhmo/reflect-shape",
 		"Qualifier": "x",
 		"Name":      "Function",
-	})
+	}); err != nil {
+		return err
+	}
+
+	cmd := exec.CommandContext(context.Background(), "go", "run", filepath.Join(d, "main.go"))
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+	return cmd.Run()
 }
