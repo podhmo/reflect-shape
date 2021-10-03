@@ -6,7 +6,7 @@ import (
 	"github.com/podhmo/reflect-shape/arglist"
 )
 
-func fixupArglist(lookup *arglist.Lookup, fn *Function, ob interface{}, fullname string) {
+func fixupArglist(lookup *arglist.Lookup, fn *Function, ob interface{}, fullname string, isMethod bool) {
 	params := fn.Params.Keys
 	returns := fn.Returns.Keys
 
@@ -17,7 +17,7 @@ func fixupArglist(lookup *arglist.Lookup, fn *Function, ob interface{}, fullname
 	}
 
 	d := 0
-	if nameset.Recv != "" { // is method
+	if isMethod && nameset.Recv != "" { // is method
 		d = 1
 	}
 
