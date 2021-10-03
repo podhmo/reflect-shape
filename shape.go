@@ -272,7 +272,7 @@ func (v *Struct) Methods() FunctionSet {
 			)
 			fn := shape.(Function)
 			if v.extractor.ArglistLookup != nil { // always revisit
-				fixupArglist(v.extractor.ArglistLookup, &fn, method.Func.Interface(), name)
+				fixupArglist(v.extractor.ArglistLookup, &fn, method.Func.Interface(), name, true)
 			}
 			methodMap.Names = append(methodMap.Names, name)
 			methodMap.Functions[name] = fn
@@ -463,6 +463,8 @@ type Extractor struct {
 
 	ArglistLookup  *arglist.Lookup
 	RevisitArglist bool
+
+	c int
 }
 
 var rnil reflect.Value
@@ -487,7 +489,7 @@ func (e *Extractor) Extract(ob interface{}) Shape {
 		fn.Info.Package = pkgPath
 
 		if e.RevisitArglist && e.ArglistLookup != nil {
-			fixupArglist(e.ArglistLookup, &fn, ob, fullname)
+			fixupArglist(e.ArglistLookup, &fn, ob, fullname, false)
 		}
 		return fn
 	}
@@ -645,11 +647,13 @@ func (e *Extractor) extract(
 		return e.save(rt, s)
 	case reflect.Func:
 		name := info.Name
+		isMethod := false
 		if ob != nil {
 			if m, ok := ob.(reflect.Method); ok {
 				ob = m.Func.Interface()
 				pkgPath = m.PkgPath
 				name = m.Name
+				isMethod = true
 			} else {
 				fullname := runtime.FuncForPC(reflect.ValueOf(ob).Pointer()).Name()
 				parts := strings.Split(fullname, ".")
@@ -662,12 +666,17 @@ func (e *Extractor) extract(
 		params := make([]Shape, rt.NumIn())
 		for i := 0; i < len(params); i++ {
 			v := rt.In(i)
-			pnames[i] = "args" + strconv.Itoa(i) //
-			params[i] = e.extract(
+			arg := e.extract(
 				append(path, "func.p["+strconv.Itoa(i)+"]"),
 				append(rts, v),
 				append(rvs, rnil),
 				nil)
+			argname := "args" + strconv.Itoa(i) //
+			if arg.GetReflectKind() == reflect.Func {
+				argname = arg.GetName()
+			}
+			pnames[i] = argname
+			params[i] = arg
 		}
 		rnames := make([]string, rt.NumOut())
 		returns := make([]Shape, rt.NumOut())
@@ -695,7 +704,11 @@ func (e *Extractor) extract(
 		}
 		// fixup names
 		if e.ArglistLookup != nil && ob != nil {
-			fixupArglist(e.ArglistLookup, &s, ob, name)
+			fixupArglist(e.ArglistLookup, &s, ob, name, isMethod)
+		}
+		if s.Name == "" {
+			s.Name = fmt.Sprintf("func%d", e.c)
+			e.c++
 		}
 
 		return e.save(rt, s)

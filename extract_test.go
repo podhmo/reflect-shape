@@ -258,7 +258,7 @@ func TestFunction(t *testing.T) {
 				var handler EmitFunc
 				return handler
 			}(),
-			output: "(context.Context, io.Writer) (error)",
+			output: "func(context.Context, io.Writer) (error)",
 		},
 	}
 

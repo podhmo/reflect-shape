@@ -1,7 +1,7 @@
 RUN_CMD := go run ../cmd/reflect-shape-dump 
 SHELL := bash
 
-default: 00 01 02
+default: 00 01 02 03
 
 00: data
 	$(RUN_CMD) github.com/podhmo/reflect-shape/_examples/$(shell echo $@*).Hello | tee data/$@.output
@@ -9,6 +9,8 @@ default: 00 01 02
 	$(RUN_CMD) github.com/podhmo/reflect-shape/_examples/$(shell echo $@*).Foo.Hello | tee data/$@.output
 02: data
 	$(RUN_CMD) github.com/podhmo/reflect-shape/_examples/$(shell echo $@*).HelloFunc | tee data/$@.output
+03: data
+	$(RUN_CMD) github.com/podhmo/reflect-shape/_examples/$(shell echo $@*).Foo | tee data/$@.output
 
 data:
 	mkdir -p $@
