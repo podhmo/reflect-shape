@@ -463,6 +463,8 @@ type Extractor struct {
 
 	ArglistLookup  *arglist.Lookup
 	RevisitArglist bool
+
+	c int
 }
 
 var rnil reflect.Value
@@ -664,12 +666,17 @@ func (e *Extractor) extract(
 		params := make([]Shape, rt.NumIn())
 		for i := 0; i < len(params); i++ {
 			v := rt.In(i)
-			pnames[i] = "args" + strconv.Itoa(i) //
-			params[i] = e.extract(
+			arg := e.extract(
 				append(path, "func.p["+strconv.Itoa(i)+"]"),
 				append(rts, v),
 				append(rvs, rnil),
 				nil)
+			argname := "args" + strconv.Itoa(i) //
+			if arg.GetReflectKind() == reflect.Func {
+				argname = arg.GetName()
+			}
+			pnames[i] = argname
+			params[i] = arg
 		}
 		rnames := make([]string, rt.NumOut())
 		returns := make([]Shape, rt.NumOut())
@@ -698,6 +705,10 @@ func (e *Extractor) extract(
 		// fixup names
 		if e.ArglistLookup != nil && ob != nil {
 			fixupArglist(e.ArglistLookup, &s, ob, name, isMethod)
+		}
+		if s.Name == "" {
+			s.Name = fmt.Sprintf("func%d", e.c)
+			e.c++
 		}
 
 		return e.save(rt, s)
