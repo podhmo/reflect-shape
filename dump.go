@@ -15,13 +15,12 @@ func Fdump(w io.Writer, s Shape) error {
 		W:       w,
 		Shape:   s,
 		counter: map[Identity]int{s.GetIdentity(): 0},
-		seen:   map[Identity]bool{},
+		seen:    map[Identity]bool{},
 	}
 	if err := dumper.dump(s, 0); err != nil {
 		return err
 	}
 	for len(dumper.q) > 0 {
-		fmt.Fprintln(w, "----------------------------------------")
 		item := dumper.q[0]
 		dumper.q = dumper.q[1:]
 		if err := dumper.dump(item, 0); err != nil {
@@ -56,18 +55,19 @@ func (d *dumper) typeStrOf(s Shape) string {
 }
 
 func (d *dumper) dump(s Shape, lv int) error {
-	w := d.W
-	indent := strings.Repeat("  ", lv)
-
-	if lv == 0 {
-		fmt.Fprintf(w, "%02d:%s%T\ttype=%s\n", lv, indent, s, d.typeStrOf(s))
-	}
-
 	k := s.GetIdentity()
 	if _, ok := d.seen[k]; ok {
 		return nil
 	}
 	d.seen[k] = true
+
+	w := d.W
+	indent := strings.Repeat("  ", lv)
+
+	if lv == 0 {
+		fmt.Fprintln(w, "----------------------------------------")
+		fmt.Fprintf(w, "%02d:%s%T\ttype=%s\n", lv, indent, s, d.typeStrOf(s))
+	}
 
 	switch s := s.(type) {
 	case nil:
@@ -115,6 +115,8 @@ func (d *dumper) dump(s Shape, lv int) error {
 			}
 		}
 	case Unknown:
+	case *ref:
+		return nil
 	default:
 		return fmt.Errorf("unexpected type %T %+v", s, s)
 	}
