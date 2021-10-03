@@ -28,6 +28,7 @@ import (
 
 
 func main() {
+	log.SetFlags(0)
 	if err := run(); err != nil {
 		log.Fatalf("!! %+v", err)
 	}
@@ -159,6 +160,6 @@ func run() error {
 
 	cmd := exec.CommandContext(ctx, "go", "run", filepath.Join(d, "main.go"))
 	cmd.Stdout = os.Stdout
-	cmd.Stderr = os.Stderr
+	cmd.Stderr = os.Stdout
 	return cmd.Run()
 }
