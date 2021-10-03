@@ -672,7 +672,7 @@ func (e *Extractor) extract(
 				append(rvs, rnil),
 				nil)
 			argname := "args" + strconv.Itoa(i) //
-			if arg.GetReflectKind() == reflect.Func {
+			if v.Kind() == reflect.Func {
 				argname = arg.GetName()
 			}
 			pnames[i] = argname
