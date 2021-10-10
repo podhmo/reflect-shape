@@ -20,6 +20,11 @@ type Lookup struct {
 
 	fileCache map[string]*ast.File
 	declCache map[*ast.File]map[string][]*ast.FuncDecl
+	nsCache   map[uintptr]*nscacheItem
+}
+type nscacheItem struct {
+	ns  NameSet
+	err error
 }
 
 // NewLookup is the factory function creating Lookup
@@ -28,6 +33,7 @@ func NewLookup() *Lookup {
 		fset:      token.NewFileSet(),
 		fileCache: map[string]*ast.File{},
 		declCache: map[*ast.File]map[string][]*ast.FuncDecl{},
+		nsCache:   map[uintptr]*nscacheItem{},
 	}
 }
 
@@ -69,7 +75,20 @@ func (l *Lookup) LookupNameSetFromFunc(fn interface{}) (NameSet, error) {
 	if fn == nil {
 		return NameSet{}, fmt.Errorf("fn is nil")
 	}
-	rfunc := runtime.FuncForPC(reflect.ValueOf(fn).Pointer())
+	pc := reflect.ValueOf(fn).Pointer()
+	if item, ok := l.nsCache[pc]; ok {
+		return item.ns, item.err
+	}
+	ns, err := l.lookupNameSetFromFuncPC(pc)
+	l.nsCache[pc] = &nscacheItem{ns: ns, err: err} // cache even error
+	if err != nil {
+		return NameSet{}, err
+	}
+	return ns, nil
+}
+
+func (l *Lookup) lookupNameSetFromFuncPC(pc uintptr) (NameSet, error) {
+	rfunc := runtime.FuncForPC(pc)
 	if rfunc == nil {
 		return NameSet{}, fmt.Errorf("cannot find runtime.Func")
 	}
