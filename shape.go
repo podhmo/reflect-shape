@@ -270,6 +270,7 @@ func (v *Struct) Methods() FunctionSet {
 				append(rvs, method.Func),
 				method,
 			)
+			shape = shape.deref(v.extractor.Seen)
 			fn := shape.(Function)
 			if v.extractor.ArglistLookup != nil { // always revisit
 				fixupArglist(v.extractor.ArglistLookup, &fn, method.Func.Interface(), name, true)
