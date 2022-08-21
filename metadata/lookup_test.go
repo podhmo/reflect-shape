@@ -31,15 +31,16 @@ func TestStruct(t *testing.T) {
 
 	fset := token.NewFileSet()
 	l := NewLookup(fset)
-	l.IncludeGoTestFiles = true
+	l.IncludeGoTestFiles = true // for test
 
 	metadata, err := l.LookupFromStruct(Person{})
 	if err != nil {
 		t.Fatalf("unexpected error: %+v", err)
 	}
 	got := result{
-		Name: metadata.Name(),
-		Doc:  metadata.Doc(),
+		Name:          metadata.Name(),
+		Doc:           metadata.Doc(),
+		FieldComments: metadata.FieldComments(),
 	}
 
 	if diff := cmp.Diff(want, got); diff != "" {

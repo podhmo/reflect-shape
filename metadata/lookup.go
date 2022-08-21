@@ -162,7 +162,8 @@ func (l *Lookup) LookupFromStruct(ob interface{}) (*Struct, error) {
 			}
 			continue
 		}
-		if pkg.ID != pkgpath {
+
+		if pkg.PkgPath != pkgpath {
 			continue
 		}
 		tree := &ast.Package{Name: pkg.Name, Files: map[string]*ast.File{}}
@@ -177,7 +178,7 @@ func (l *Lookup) LookupFromStruct(ob interface{}) (*Struct, error) {
 		}
 		result, ok := p.Structs[rt.Name()]
 		if !ok {
-			return nil, fmt.Errorf("lookup metadata of %T is failed in %s %w", ob, pkg, ErrNotFound)
+			continue
 		}
 		return &Struct{Raw: result}, nil
 	}
