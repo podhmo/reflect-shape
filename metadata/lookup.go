@@ -98,7 +98,7 @@ func (l *Lookup) LookupFromFunc(fn interface{}) (*Func, error) {
 	}
 	result, ok := p.Functions[funcname]
 	if !ok {
-		return nil, fmt.Errorf("function not found,")
+		return nil, fmt.Errorf("lookup metadata of %T is failed %w", funcname, ErrNotFound)
 	}
 	return &Func{pc: pc, Raw: result}, nil
 }
@@ -154,6 +154,7 @@ func (l *Lookup) LookupFromStruct(ob interface{}) (*Struct, error) {
 			return parser.ParseFile(fset, filename, src, mode)
 		},
 	}
+
 	pkgs, err := packages.Load(cfg, pkgpath)
 	if err != nil {
 		return nil, fmt.Errorf("packages.Load() %w", err)
@@ -181,9 +182,9 @@ func (l *Lookup) LookupFromStruct(ob interface{}) (*Struct, error) {
 		}
 		result, ok := p.Structs[rt.Name()]
 		if !ok {
-			continue
+			return nil, fmt.Errorf("lookup metadata of %T is failed in %s %w", ob, pkg, ErrNotFound)
 		}
 		return &Struct{Raw: result}, nil
 	}
-	return nil, ErrNotFound
+	return nil, fmt.Errorf("lookup metadata of %T is failed %w", ob, ErrNotFound)
 }
