@@ -16,26 +16,21 @@ import (
 	"golang.org/x/tools/go/packages"
 )
 
-// TODO: args, returns comments
 // TODO: cache
 
 // ErrNotFound is the error metadata is not found.
 var ErrNotFound = fmt.Errorf("not found")
 
-type Config struct {
-	IncludeGoTestFiles bool
-}
-
 type Lookup struct {
 	Fset *token.FileSet
 
-	Config
+	IncludeGoTestFiles bool
 }
 
 func NewLookup(fset *token.FileSet) *Lookup {
 	return &Lookup{
-		Fset:   fset,
-		Config: Config{},
+		Fset:               fset,
+		IncludeGoTestFiles: false,
 	}
 }
 
