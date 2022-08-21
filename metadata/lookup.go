@@ -10,6 +10,7 @@ import (
 	"runtime"
 	"runtime/debug"
 	"strings"
+	"sync"
 
 	"github.com/podhmo/commentof"
 	"github.com/podhmo/commentof/collect"
@@ -24,13 +25,25 @@ var ErrNotFound = fmt.Errorf("not found")
 type Lookup struct {
 	Fset *token.FileSet
 
+	cache     map[string]*packageRef
+	mu        sync.Mutex
+	buildinfo *debug.BuildInfo
+
 	IncludeGoTestFiles bool
+}
+
+type packageRef struct {
+	*collect.Package
+
+	fullset bool
+	err     error
 }
 
 func NewLookup(fset *token.FileSet) *Lookup {
 	return &Lookup{
 		Fset:               fset,
 		IncludeGoTestFiles: false,
+		cache:              map[string]*packageRef{},
 	}
 }
 
@@ -131,13 +144,31 @@ func (l *Lookup) LookupFromStruct(ob interface{}) (*Struct, error) {
 	obname := rt.Name()
 	pkgpath := rt.PkgPath()
 	if pkgpath == "main" {
-		binfo, ok := debug.ReadBuildInfo()
-		if !ok {
-			log.Println("debug.ReadBuildInfo() is failed")
-			return nil, ErrNotFound
+		if l.buildinfo == nil {
+			binfo, ok := debug.ReadBuildInfo()
+			if !ok {
+				log.Println("debug.ReadBuildInfo() is failed")
+				return nil, ErrNotFound
+			}
+			l.buildinfo = binfo
 		}
-		pkgpath = binfo.Path
+		pkgpath = l.buildinfo.Path
 	}
+
+	l.mu.Lock()
+	if p, ok := l.cache[pkgpath]; ok && p.fullset {
+		defer l.mu.Unlock()
+		if p.err != nil {
+			return nil, p.err
+		}
+
+		result, ok := p.Structs[obname]
+		if !ok {
+			return nil, fmt.Errorf("lookup metadata of %T is failed %w", ob, ErrNotFound)
+		}
+		return &Struct{Raw: result}, nil
+	}
+	l.mu.Unlock()
 
 	cfg := &packages.Config{
 		Fset:  l.Fset,
@@ -160,23 +191,39 @@ func (l *Lookup) LookupFromStruct(ob interface{}) (*Struct, error) {
 			for _, err := range pkg.Errors {
 				log.Printf("lookup package error (%s) %+v", pkg, err)
 			}
+			func() {
+				l.mu.Lock()
+				defer l.mu.Unlock()
+				ref := &packageRef{fullset: true, err: pkg.Errors[0]}
+				l.cache[pkg.PkgPath] = ref
+			}()
 			continue
 		}
 
 		if pkg.PkgPath != pkgpath {
 			continue
 		}
+
 		tree := &ast.Package{Name: pkg.Name, Files: map[string]*ast.File{}}
 		for _, f := range pkg.Syntax {
 			filename := l.Fset.File(f.Pos()).Name()
 			tree.Files[filename] = f
 		}
 
-		p, err := commentof.Package(l.Fset, tree)
-		if err != nil {
-			return nil, fmt.Errorf("collect: dir=%s, name=%s, %w", pkg.PkgPath, obname, err)
-		}
-		result, ok := p.Structs[rt.Name()]
+		func() {
+			l.mu.Lock()
+			defer l.mu.Unlock()
+
+			ref := &packageRef{fullset: true}
+			p, err := commentof.Package(l.Fset, tree)
+			if err != nil {
+				ref.err = err
+			}
+			ref.Package = p
+			l.cache[pkg.PkgPath] = ref
+		}()
+
+		result, ok := l.cache[pkgpath].Structs[obname]
 		if !ok {
 			continue
 		}
