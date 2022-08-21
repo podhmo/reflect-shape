@@ -88,22 +88,60 @@ func (l *Lookup) LookupFromFunc(fn interface{}) (*Func, error) {
 	}
 
 	filename, _ := rfunc.FileLine(rfunc.Entry())
-	funcname := rfunc.Name()
-	if strings.Contains(funcname, ".") {
-		parts := strings.Split(funcname, ".")
-		funcname = parts[len(parts)-1]
+	fullname := rfunc.Name()
+	parts := strings.Split(fullname, ".")
+	pkgpath := strings.Join(parts[:len(parts)-1], ".")
+	funcname := parts[len(parts)-1]
+
+	l.mu.Lock()
+	p0, ok := l.cache[pkgpath]
+	if ok && p0.fullset {
+		defer l.mu.Unlock()
+		if p0.err != nil {
+			return nil, p0.err
+		}
+		result, ok := p0.Functions[funcname]
+		if !ok {
+			return nil, fmt.Errorf("lookup metadata of %s is failed %w", fullname, ErrNotFound)
+		}
+		return &Func{Raw: result}, nil
+	}
+	defer l.mu.Unlock()
+
+	if ok && p0 != nil {
+		for _, visitedFile := range p0.FileNames {
+			if visitedFile == filename {
+				f, ok := p0.Files[funcname]
+				if !ok {
+					break
+				}
+				result, ok := f.Functions[funcname]
+				if !ok {
+					return nil, fmt.Errorf("lookup metadata of %T is failed %w", funcname, ErrNotFound)
+				}
+				return &Func{pc: pc, Raw: result}, nil
+			}
+		}
 	}
 
-	f, err := parser.ParseFile(l.Fset, filename, nil, parser.ParseComments)
-	if f == nil {
+	tree, err := parser.ParseFile(l.Fset, filename, nil, parser.ParseComments)
+	if tree == nil {
+		l.cache[pkgpath] = &packageRef{fullset: false, err: err}
 		return nil, err
 	}
 
-	// TODO: package cache
-	p, err := commentof.File(l.Fset, f)
+	p, err := commentof.File(l.Fset, tree, func(b *collect.PackageBuilder) {
+		if p0 != nil {
+			b.Package = p0.Package // merge Package
+		}
+	})
+	if !ok && p != nil {
+		l.cache[pkgpath] = &packageRef{fullset: false, Package: p}
+	}
 	if err != nil {
 		return nil, err
 	}
+
 	result, ok := p.Functions[funcname]
 	if !ok {
 		return nil, fmt.Errorf("lookup metadata of %T is failed %w", funcname, ErrNotFound)
