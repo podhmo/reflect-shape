@@ -16,16 +16,26 @@ import (
 	"golang.org/x/tools/go/packages"
 )
 
+// TODO: args, returns comments
+// TODO: cache
+
 // ErrNotFound is the error metadata is not found.
 var ErrNotFound = fmt.Errorf("not found")
 
+type Config struct {
+	IncludeGoTestFiles bool
+}
+
 type Lookup struct {
 	Fset *token.FileSet
+
+	Config
 }
 
 func NewLookup(fset *token.FileSet) *Lookup {
 	return &Lookup{
-		Fset: fset,
+		Fset:   fset,
+		Config: Config{},
 	}
 }
 
@@ -43,7 +53,7 @@ func (m *Func) Name() string {
 }
 
 func (m *Func) Doc() string {
-	return strings.TrimSpace(m.Raw.Doc) // todo: handling comment
+	return strings.TrimSpace(m.Raw.Doc)
 }
 
 func (m *Func) Args() []string {
@@ -97,6 +107,30 @@ type Struct struct {
 	Raw *collect.Object
 }
 
+func (s *Struct) Name() string {
+	return s.Raw.Name
+}
+
+func (s *Struct) Doc() string {
+	doc := s.Raw.Doc
+	if doc == "" {
+		doc = s.Raw.Comment
+	}
+	return strings.TrimSpace(doc)
+}
+
+func (s *Struct) FieldComments() map[string]string {
+	comments := make(map[string]string, len(s.Raw.Fields))
+	for _, f := range s.Raw.Fields {
+		doc := f.Doc
+		if doc == "" {
+			doc = f.Comment
+		}
+		comments[f.Name] = strings.TrimSpace(doc)
+	}
+	return comments
+}
+
 func (l *Lookup) LookupFromStruct(ob interface{}) (*Struct, error) {
 	rt := reflect.TypeOf(ob)
 	obname := rt.Name()
@@ -111,8 +145,14 @@ func (l *Lookup) LookupFromStruct(ob interface{}) (*Struct, error) {
 	}
 
 	cfg := &packages.Config{
-		Fset: l.Fset,
-		Mode: packages.NeedName | packages.NeedFiles | packages.NeedSyntax,
+		Fset:  l.Fset,
+		Mode:  packages.NeedName | packages.NeedFiles | packages.NeedSyntax,
+		Tests: l.IncludeGoTestFiles, // TODO: support <name>_test package
+		ParseFile: func(fset *token.FileSet, filename string, src []byte) (*ast.File, error) {
+			// TODO: debug print
+			const mode = parser.ParseComments //| parser.AllErrors
+			return parser.ParseFile(fset, filename, src, mode)
+		},
 	}
 	pkgs, err := packages.Load(cfg, pkgpath)
 	if err != nil {
@@ -122,7 +162,7 @@ func (l *Lookup) LookupFromStruct(ob interface{}) (*Struct, error) {
 	for _, pkg := range pkgs {
 		if len(pkg.Errors) > 0 {
 			for _, err := range pkg.Errors {
-				log.Printf("pkg %s error: %+v", pkg, err)
+				log.Printf("lookup package error (%s) %+v", pkg, err)
 			}
 			continue
 		}
