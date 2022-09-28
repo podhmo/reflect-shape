@@ -5,7 +5,20 @@ import "unsafe"
 //go:linkname runtime_findmoduledatap runtime.findmoduledatap
 func runtime_findmoduledatap(pc uintptr) *moduledata
 
-// copy from go/src/runtime/*.go
+//go:linkname runtime_firstmoduledata runtime.firstmoduledata
+var runtime_firstmoduledata moduledata
+
+// // findmoduledatap looks up the moduledata for a PC.
+// func findmoduledatap(pc uintptr) *moduledata {
+// 	for datap := &runtime_firstmoduledata; datap != nil; datap = datap.next {
+// 		if datap.minpc <= pc && pc < datap.maxpc {
+// 			return datap
+// 		}
+// 	}
+// 	return nil
+// }
+
+// copy from go/src/runtime/symtab.go
 
 type pcHeader struct {
 	magic          uint32  // 0xFFFFFFF0
