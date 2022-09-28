@@ -96,32 +96,61 @@ func (s S) Method2(ctx context.Context, name string) (result int, err error) { r
 
 func TestMethod(t *testing.T) {
 	type result struct {
-		Name string
-		Doc  string
-		Args []string
+		Name    string
+		Doc     string
+		Args    []string
+		Returns []string
 	}
 
-	want := result{
-		Name: "Method1",
-		Doc:  "Method1 is one of S",
-		Args: []string{"name"},
+	cases := []struct {
+		msg    string
+		want   result
+		target interface{}
+	}{
+		{
+			msg: "pointer",
+			want: result{
+				Name:    "Method1",
+				Doc:     "Method1 is one of S",
+				Args:    []string{"name"},
+				Returns: []string{""},
+			},
+			target: (&S{}).Method1,
+		},
+		{
+			msg: "value",
+			want: result{
+				Name:    "Method2",
+				Doc:     "Method2 is one of S",
+				Args:    []string{"ctx", "name"},
+				Returns: []string{"result", "err"},
+			},
+			target: (S{}).Method2,
+		},
 	}
 
 	fset := token.NewFileSet()
 	l := NewLookup(fset)
 	l.IncludeGoTestFiles = true
 
-	metadata, err := l.LookupFromFunc((&S{}).Method1)
-	if err != nil {
-		t.Fatalf("unexpected error: %+v", err)
-	}
-	got := result{
-		Name: metadata.Name(),
-		Doc:  metadata.Doc(),
-		Args: metadata.Args(),
-	}
+	for _, c := range cases {
+		c := c
+		t.Run(c.msg, func(t *testing.T) {
+			metadata, err := l.LookupFromFunc(c.target)
+			if err != nil {
+				t.Fatalf("unexpected error: %+v", err)
+			}
+			got := result{
+				Name:    metadata.Name(),
+				Doc:     metadata.Doc(),
+				Args:    metadata.Args(),
+				Returns: metadata.Returns(),
+			}
 
-	if diff := cmp.Diff(want, got); diff != "" {
-		t.Errorf("LookupFromFunc() mismatch (-want +got):\n%s", diff)
+			if diff := cmp.Diff(c.want, got); diff != "" {
+				t.Errorf("LookupFromFunc() mismatch (-want +got):\n%s", diff)
+			}
+
+		})
 	}
 }
