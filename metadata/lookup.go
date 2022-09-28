@@ -13,6 +13,7 @@ import (
 
 	"github.com/podhmo/commentof"
 	"github.com/podhmo/commentof/collect"
+	"github.com/podhmo/reflect-shape/metadata/internal/unsaferuntime"
 	"golang.org/x/tools/go/packages"
 )
 
@@ -22,7 +23,8 @@ import (
 var ErrNotFound = fmt.Errorf("not found")
 
 type Lookup struct {
-	Fset *token.FileSet
+	Fset     *token.FileSet
+	accessor *unsaferuntime.Accessor
 
 	IncludeGoTestFiles bool
 }
@@ -30,6 +32,7 @@ type Lookup struct {
 func NewLookup(fset *token.FileSet) *Lookup {
 	return &Lookup{
 		Fset:               fset,
+		accessor:           unsaferuntime.New(),
 		IncludeGoTestFiles: false,
 	}
 }
@@ -69,18 +72,12 @@ func (m *Func) Returns() []string {
 
 func (l *Lookup) LookupFromFunc(fn interface{}) (*Func, error) {
 	pc := reflect.ValueOf(fn).Pointer()
-	rfunc := runtime.FuncForPC(pc)
+	rfunc := l.accessor.FuncForPC(pc)
 	if rfunc == nil {
 		return nil, fmt.Errorf("cannot find runtime.Func")
 	}
 
 	filename, _ := rfunc.FileLine(rfunc.Entry())
-	funcname := rfunc.Name()
-	if strings.Contains(funcname, ".") {
-		parts := strings.Split(funcname, ".")
-		funcname = parts[len(parts)-1]
-	}
-
 	f, err := parser.ParseFile(l.Fset, filename, nil, parser.ParseComments)
 	if f == nil {
 		return nil, err
@@ -91,11 +88,45 @@ func (l *Lookup) LookupFromFunc(fn interface{}) (*Func, error) {
 	if err != nil {
 		return nil, err
 	}
-	result, ok := p.Functions[funcname]
-	if !ok {
-		return nil, fmt.Errorf("lookup metadata of %T is failed %w", funcname, ErrNotFound)
+
+	// /<pkg name>.<function name>
+	// /<pkg name>.<recv>.<method name>
+	// /<pkg name>.<recv>.<method name>-fm
+
+	parts := strings.Split(rfunc.Name(), "/")
+	last := parts[len(parts)-1]
+	pkgname, name, isFunc := strings.Cut(last, ".")
+	_ = pkgname
+	if !isFunc {
+		return nil, fmt.Errorf("unexpected func: %v", rfunc.Name())
 	}
-	return &Func{pc: pc, Raw: result}, nil
+
+	recv, name, isMethod := strings.Cut(name, ".")
+	if isMethod {
+		recv = strings.Trim(recv, "(*)")
+	} else {
+		name = recv
+		recv = ""
+	}
+	// fmt.Printf("pkgname:%-15s\trecv:%-10s\tname:%s", pkgname, recv, name)
+
+	if isMethod {
+		ob, ok := p.Structs[recv]
+		if !ok {
+			return nil, fmt.Errorf("lookup metadata of %s is failed %w", rfunc.Name(), ErrNotFound)
+		}
+		result, ok := ob.Methods[name]
+		if !ok {
+			return nil, fmt.Errorf("lookup metadata of %s is failed %w", rfunc.Name(), ErrNotFound)
+		}
+		return &Func{pc: pc, Raw: result}, nil
+	} else {
+		result, ok := p.Functions[name]
+		if !ok {
+			return nil, fmt.Errorf("lookup metadata of %s is failed %w", rfunc.Name(), ErrNotFound)
+		}
+		return &Func{pc: pc, Raw: result}, nil
+	}
 }
 
 type Struct struct {

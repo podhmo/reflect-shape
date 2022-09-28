@@ -1,6 +1,7 @@
 package metadata
 
 import (
+	"context"
 	"go/token"
 	"testing"
 
@@ -82,5 +83,74 @@ func TestFunc(t *testing.T) {
 
 	if diff := cmp.Diff(want, got); diff != "" {
 		t.Errorf("LookupFromFunc() mismatch (-want +got):\n%s", diff)
+	}
+}
+
+type S struct{}
+
+// Method1 is one of S
+func (s *S) Method1(name string) error { return nil }
+
+// Method2 is one of S
+func (s S) Method2(ctx context.Context, name string) (result int, err error) { return 0, nil }
+
+func TestMethod(t *testing.T) {
+	type result struct {
+		Name    string
+		Doc     string
+		Args    []string
+		Returns []string
+	}
+
+	cases := []struct {
+		msg    string
+		want   result
+		target interface{}
+	}{
+		{
+			msg: "pointer",
+			want: result{
+				Name:    "Method1",
+				Doc:     "Method1 is one of S",
+				Args:    []string{"name"},
+				Returns: []string{""},
+			},
+			target: (&S{}).Method1,
+		},
+		{
+			msg: "value",
+			want: result{
+				Name:    "Method2",
+				Doc:     "Method2 is one of S",
+				Args:    []string{"ctx", "name"},
+				Returns: []string{"result", "err"},
+			},
+			target: (S{}).Method2,
+		},
+	}
+
+	fset := token.NewFileSet()
+	l := NewLookup(fset)
+	l.IncludeGoTestFiles = true
+
+	for _, c := range cases {
+		c := c
+		t.Run(c.msg, func(t *testing.T) {
+			metadata, err := l.LookupFromFunc(c.target)
+			if err != nil {
+				t.Fatalf("unexpected error: %+v", err)
+			}
+			got := result{
+				Name:    metadata.Name(),
+				Doc:     metadata.Doc(),
+				Args:    metadata.Args(),
+				Returns: metadata.Returns(),
+			}
+
+			if diff := cmp.Diff(c.want, got); diff != "" {
+				t.Errorf("LookupFromFunc() mismatch (-want +got):\n%s", diff)
+			}
+
+		})
 	}
 }
