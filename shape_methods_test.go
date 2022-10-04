@@ -2,12 +2,13 @@ package reflectshape_test
 
 import (
 	"context"
+	"go/token"
 	"reflect"
 	"strings"
 	"testing"
 
 	reflectshape "github.com/podhmo/reflect-shape"
-	"github.com/podhmo/reflect-shape/arglist"
+	"github.com/podhmo/reflect-shape/metadata"
 )
 
 type something struct{}
@@ -17,8 +18,12 @@ func (s *something) unexportedMethod(ctx context.Context) string                
 func (s *something) AnotherExportedMethod(ctx context.Context, another string) string { return "" }
 
 func TestMethod(t *testing.T) {
+	fset := token.NewFileSet()
+
 	e := reflectshape.NewExtractor()
-	e.ArglistLookup = arglist.NewLookup()
+	e.MetadataLookup = metadata.NewLookup(fset)
+	e.MetadataLookup.IncludeGoTestFiles = true
+	e.MetadataLookup.IncludeUnexported = true
 
 	target := &something{}
 
@@ -41,7 +46,7 @@ func TestMethod(t *testing.T) {
 	t.Run("args", func(t *testing.T) {
 		{
 			name := "ExportedMethod"
-			args := []string{"s", "ctx", "foo"}
+			args := []string{"something", "ctx", "foo"}
 			t.Run(name, func(t *testing.T) {
 				m := mmap.Functions[name]
 				if want, got := args, m.Params.Keys; !reflect.DeepEqual(want, got) {
@@ -51,7 +56,7 @@ func TestMethod(t *testing.T) {
 		}
 		{
 			name := "AnotherExportedMethod"
-			args := []string{"s", "ctx", "another"}
+			args := []string{"something", "ctx", "another"}
 			t.Run(name, func(t *testing.T) {
 				m := mmap.Functions[name]
 				if want, got := args, m.Params.Keys; !reflect.DeepEqual(want, got) {

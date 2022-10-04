@@ -3,35 +3,39 @@ package reflectshape
 import (
 	"log"
 
-	"github.com/podhmo/reflect-shape/arglist"
+	"github.com/podhmo/reflect-shape/metadata"
 )
 
-func fixupArglist(lookup *arglist.Lookup, fn *Function, ob interface{}, fullname string, isMethod bool) {
+func fixupArglist(lookup *metadata.Lookup, fn *Function, ob interface{}, fullname string, isMethod bool) {
 	params := fn.Params.Keys
 	returns := fn.Returns.Keys
 
 	// fixup names
-	nameset, err := lookup.LookupNameSetFromFunc(ob)
+	mfunc, err := lookup.LookupFromFunc(ob)
 	if err != nil {
-		log.Printf("function %q, arglist lookup is failed %v", fullname, err)
+		log.Printf("function %q, arglist lookup is failed: %+v", fullname, err)
+		return
 	}
 
 	d := 0
-	if isMethod && nameset.Recv != "" { // is method
+	if isMethod && mfunc.Recv != "" { // is method
 		d = 1
 	}
 
-	if len(nameset.Args) != len(params)-d {
-		log.Printf("the length of arguments is mismatch, got=%d != want=%d", len(nameset.Args), len(params)-d)
+	margs := mfunc.Args()
+	if len(margs) != len(params)-d {
+		log.Printf("the length of arguments is mismatch, got=%d != want=%d", len(margs), len(params)-d)
 	} else {
 		if d > 0 {
-			nameset.Args = append([]string{nameset.Recv}, nameset.Args...)
+			margs = append([]string{mfunc.Recv}, margs...)
 		}
-		fn.Params.Keys = nameset.Args
+		fn.Params.Keys = margs
 	}
-	if len(nameset.Returns) != len(returns) {
-		log.Printf("the length of returns is mismatch, got=%d != want=%d", len(nameset.Returns), len(returns))
+
+	mreturns := mfunc.Returns()
+	if len(mreturns) != len(returns) {
+		log.Printf("the length of returns is mismatch, got=%d != want=%d", len(mreturns), len(returns))
 	} else {
-		fn.Returns.Keys = nameset.Returns
+		fn.Returns.Keys = mreturns
 	}
 }

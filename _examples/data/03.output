@@ -1,5 +1,4 @@
-function "", arglist lookup is failed cannot find runtime.Func
-the length of returns is mismatch, got=0 != want=1
+function "", arglist lookup is failed: cannot find runtime.Func
 ----------------------------------------
 00:reflectshape.Struct	type="Foo"=#0	foo.Foo
 01:  field="Hello"	reflectshape.Function	type="func0"=#1	func(string) string

@@ -19,9 +19,10 @@ package main
 import (
 	"log"
 	"os"
+	"go/token"
 
 	reflectshape "github.com/podhmo/reflect-shape"
-	"github.com/podhmo/reflect-shape/arglist"
+	"github.com/podhmo/reflect-shape/metadata"
 
 	{{.Qualifier}} "{{.Path}}"
 )
@@ -37,7 +38,8 @@ func main() {
 func run() error {
 	e := reflectshape.NewExtractor()
 	e.RevisitArglist = true
-	e.ArglistLookup = arglist.NewLookup()
+	fset := token.NewFileSet()
+	e.MetadataLookup = metadata.NewLookup(fset)
 
 {{ if eq .Kind "Func" }}
 	s := e.Extract({{.Qualifier}}.{{.Name}})

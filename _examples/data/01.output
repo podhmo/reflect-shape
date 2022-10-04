@@ -1,4 +1,4 @@
 ----------------------------------------
 00:reflectshape.Function	type="Hello-fm"=#0	func(string) string
 01:  arg[0]="name"	reflectshape.Primitive	type="string"	string
-01:  ret[0]="ret0"	reflectshape.Primitive	type="string"	string
+01:  ret[0]=""	reflectshape.Primitive	type="string"	string
