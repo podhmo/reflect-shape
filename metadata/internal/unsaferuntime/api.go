@@ -23,6 +23,8 @@ func (a *Accessor) FuncForPC(pc uintptr) *runtime.Func {
 	}
 	target := strings.TrimSuffix(rfunc.Name(), "-fm")
 
+	var prevs []*moduledata
+	findDepth := 1
 	for datap := &runtime_firstmoduledata; datap != nil; datap = datap.next {
 		if datap.minpc <= pc && pc < datap.maxpc {
 			m := datap
@@ -34,7 +36,23 @@ func (a *Accessor) FuncForPC(pc uintptr) *runtime.Func {
 					return rfunc
 				}
 			}
+			// find prev
+			if len(prevs) > 0 {
+				m := prevs[len(prevs)-findDepth]
+				for _, functab := range m.ftab {
+					//	fmt.Printf("functab: %x, %x\n", functab.entryoff, functab.funcoff)
+					funcoff := functab.funcoff
+					rfunc := (*runtime.Func)(unsafe.Pointer(&m.pclntable[funcoff]))
+					if rfunc.Name() == target {
+						return rfunc
+					}
+				}
+				findDepth++
+			}
+			// find next
+			continue
 		}
+		prevs = append(prevs, datap)
 	}
 	return nil
 }
