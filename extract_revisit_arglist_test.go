@@ -1,10 +1,11 @@
 package reflectshape_test
 
 import (
+	"go/token"
 	"testing"
 
 	reflectshape "github.com/podhmo/reflect-shape"
-	"github.com/podhmo/reflect-shape/arglist"
+	"github.com/podhmo/reflect-shape/metadata"
 )
 
 type DB struct {
@@ -14,11 +15,12 @@ func Foo(db *DB)        {}
 func Bar(anotherDB *DB) {}
 
 func TestRevisitArglist(t *testing.T) {
-	lookup := arglist.NewLookup()
+	fset := token.NewFileSet()
+	lookup := metadata.NewLookup(fset)
 
 	t.Run("without-lookup", func(t *testing.T) {
 		e := reflectshape.NewExtractor()
-		e.ArglistLookup = nil
+		e.MetadataLookup = nil
 
 		{
 			s := e.Extract(Foo).(reflectshape.Function)
@@ -46,7 +48,7 @@ func TestRevisitArglist(t *testing.T) {
 
 	t.Run("disable", func(t *testing.T) {
 		e := reflectshape.NewExtractor()
-		e.ArglistLookup = lookup
+		e.MetadataLookup = lookup
 
 		{
 			s := e.Extract(Foo).(reflectshape.Function)
@@ -74,7 +76,7 @@ func TestRevisitArglist(t *testing.T) {
 
 	t.Run("enable", func(t *testing.T) {
 		e := reflectshape.NewExtractor()
-		e.ArglistLookup = lookup
+		e.MetadataLookup = lookup
 		e.RevisitArglist = true
 
 		{

@@ -27,6 +27,7 @@ type Lookup struct {
 	accessor *unsaferuntime.Accessor
 
 	IncludeGoTestFiles bool
+	IncludeUnexported  bool
 }
 
 func NewLookup(fset *token.FileSet) *Lookup {
@@ -34,12 +35,14 @@ func NewLookup(fset *token.FileSet) *Lookup {
 		Fset:               fset,
 		accessor:           unsaferuntime.New(),
 		IncludeGoTestFiles: false,
+		IncludeUnexported:  false,
 	}
 }
 
 type Func struct {
-	pc  uintptr
-	Raw *collect.Func
+	pc   uintptr
+	Raw  *collect.Func
+	Recv string
 }
 
 func (m *Func) Fullname() string {
@@ -84,7 +87,7 @@ func (l *Lookup) LookupFromFunc(fn interface{}) (*Func, error) {
 	}
 
 	// TODO: package cache
-	p, err := commentof.File(l.Fset, f)
+	p, err := commentof.File(l.Fset, f, commentof.WithIncludeUnexported(l.IncludeUnexported))
 	if err != nil {
 		return nil, err
 	}
@@ -108,22 +111,22 @@ func (l *Lookup) LookupFromFunc(fn interface{}) (*Func, error) {
 		name = recv
 		recv = ""
 	}
-	// fmt.Printf("pkgname:%-15s\trecv:%-10s\tname:%s", pkgname, recv, name)
+	// fmt.Printf("pkgname:%-15s\trecv:%-10s\tname:%s\n", pkgname, recv, name)
 
 	if isMethod {
 		ob, ok := p.Structs[recv]
 		if !ok {
-			return nil, fmt.Errorf("lookup metadata of %s is failed %w", rfunc.Name(), ErrNotFound)
+			return nil, fmt.Errorf("lookup metadata of method %s, %w", rfunc.Name(), ErrNotFound)
 		}
 		result, ok := ob.Methods[name]
 		if !ok {
-			return nil, fmt.Errorf("lookup metadata of %s is failed %w", rfunc.Name(), ErrNotFound)
+			return nil, fmt.Errorf("lookup metadata of method %s, %w", rfunc.Name(), ErrNotFound)
 		}
-		return &Func{pc: pc, Raw: result}, nil
+		return &Func{pc: pc, Raw: result, Recv: recv}, nil
 	} else {
 		result, ok := p.Functions[name]
 		if !ok {
-			return nil, fmt.Errorf("lookup metadata of %s is failed %w", rfunc.Name(), ErrNotFound)
+			return nil, fmt.Errorf("lookup metadata of function %s, %w", rfunc.Name(), ErrNotFound)
 		}
 		return &Func{pc: pc, Raw: result}, nil
 	}
@@ -203,7 +206,7 @@ func (l *Lookup) LookupFromStruct(ob interface{}) (*Struct, error) {
 			tree.Files[filename] = f
 		}
 
-		p, err := commentof.Package(l.Fset, tree)
+		p, err := commentof.Package(l.Fset, tree, commentof.WithIncludeUnexported(l.IncludeUnexported))
 		if err != nil {
 			return nil, fmt.Errorf("collect: dir=%s, name=%s, %w", pkg.PkgPath, obname, err)
 		}

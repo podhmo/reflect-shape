@@ -7,7 +7,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/podhmo/reflect-shape/arglist"
+	"github.com/podhmo/reflect-shape/metadata"
 )
 
 type Identity string
@@ -272,8 +272,8 @@ func (v *Struct) Methods() FunctionSet {
 			)
 			shape = shape.deref(v.extractor.Seen)
 			fn := shape.(Function)
-			if v.extractor.ArglistLookup != nil { // always revisit
-				fixupArglist(v.extractor.ArglistLookup, &fn, method.Func.Interface(), name, true)
+			if v.extractor.MetadataLookup != nil { // always revisit
+				fixupArglist(v.extractor.MetadataLookup, &fn, method.Func.Interface(), name, true)
 			}
 			methodMap.Names = append(methodMap.Names, name)
 			methodMap.Functions[name] = fn
@@ -462,7 +462,7 @@ func (v *ref) deref(seen map[reflect.Type]Shape) Shape {
 type Extractor struct {
 	Seen map[reflect.Type]Shape
 
-	ArglistLookup  *arglist.Lookup
+	MetadataLookup *metadata.Lookup
 	RevisitArglist bool
 
 	c int
@@ -489,8 +489,8 @@ func (e *Extractor) Extract(ob interface{}) Shape {
 		fn.Info.Name = parts[len(parts)-1]
 		fn.Info.Package = pkgPath
 
-		if e.RevisitArglist && e.ArglistLookup != nil {
-			fixupArglist(e.ArglistLookup, &fn, ob, fullname, false)
+		if e.RevisitArglist && e.MetadataLookup != nil {
+			fixupArglist(e.MetadataLookup, &fn, ob, fullname, false)
 		}
 		return fn
 	}
@@ -704,8 +704,8 @@ func (e *Extractor) extract(
 			},
 		}
 		// fixup names
-		if e.ArglistLookup != nil && ob != nil {
-			fixupArglist(e.ArglistLookup, &s, ob, name, isMethod)
+		if e.MetadataLookup != nil && ob != nil {
+			fixupArglist(e.MetadataLookup, &s, ob, name, isMethod)
 		}
 		if s.Name == "" {
 			s.Name = fmt.Sprintf("func%d", e.c)
