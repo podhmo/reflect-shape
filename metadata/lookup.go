@@ -118,7 +118,7 @@ func (l *Lookup) LookupFromFuncForPC(pc uintptr) (*Func, error) {
 	// fmt.Printf("pkgname:%-15s\trecv:%-10s\tname:%s\n", pkgname, recv, name)
 
 	if isMethod {
-		ob, ok := p.Structs[recv]
+		ob, ok := p.Types[recv]
 		if !ok {
 			return nil, fmt.Errorf("lookup metadata of method %s, %w", rfunc.Name(), ErrNotFound)
 		}
@@ -218,7 +218,7 @@ func (l *Lookup) LookupFromStructForReflectType(rt reflect.Type) (*Struct, error
 		if err != nil {
 			return nil, fmt.Errorf("collect: dir=%s, name=%s, %w", pkg.PkgPath, obname, err)
 		}
-		result, ok := p.Structs[rt.Name()]
+		result, ok := p.Types[rt.Name()]
 		if !ok {
 			continue
 		}
