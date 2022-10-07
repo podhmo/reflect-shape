@@ -27,6 +27,8 @@ type Extractor struct {
 	MetadataLookup *metadata.Lookup
 	RevisitArglist bool
 
+	UseEmptyStringAsDefaultArgName bool
+
 	OnError func(s Shape, err error, title string)
 
 	c int
@@ -232,7 +234,10 @@ func (e *Extractor) extract(
 				append(rts, v),
 				append(rvs, rnil),
 				nil)
-			argname := "args" + strconv.Itoa(i) //
+			argname := ""
+			if !e.UseEmptyStringAsDefaultArgName {
+				argname = "args" + strconv.Itoa(i) //
+			}
 			switch v {
 			case rcontextType:
 				if !useCtx {
@@ -256,7 +261,11 @@ func (e *Extractor) extract(
 		returns := make([]Shape, rt.NumOut())
 		for i := 0; i < len(returns); i++ {
 			v := rt.Out(i)
-			rnames[i] = "ret" + strconv.Itoa(i) //
+			retname := ""
+			if !e.UseEmptyStringAsDefaultArgName {
+				retname = "ret" + strconv.Itoa(i) //
+			}
+			rnames[i] = retname
 			returns[i] = e.extract(
 				append(path, "func.r["+strconv.Itoa(i)+"]"),
 				append(rts, v),
