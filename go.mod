@@ -4,7 +4,6 @@ go 1.18
 
 require (
 	github.com/google/go-cmp v0.5.8
-	github.com/nsf/jsondiff v0.0.0-20210303162244-6ea32392771e
 	github.com/podhmo/commentof v0.0.3
 	golang.org/x/tools v0.1.12
 )
