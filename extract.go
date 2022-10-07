@@ -237,21 +237,21 @@ func (e *Extractor) extract(
 			argname := ""
 			if !e.UseEmptyStringAsDefaultArgName {
 				argname = "args" + strconv.Itoa(i) //
-			}
-			switch v {
-			case rcontextType:
-				if !useCtx {
-					useCtx = true
-					argname = "ctx"
-				}
-			case rerrorType:
-				if !useErr {
-					useErr = true
-					argname = "err"
-				}
-			default:
-				if v.Kind() == reflect.Func {
-					argname = arg.GetName()
+				switch v {
+				case rcontextType:
+					if !useCtx {
+						useCtx = true
+						argname = "ctx"
+					}
+				case rerrorType:
+					if !useErr {
+						useErr = true
+						argname = "err"
+					}
+				default:
+					if v.Kind() == reflect.Func {
+						argname = arg.GetName()
+					}
 				}
 			}
 			pnames[i] = argname
