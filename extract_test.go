@@ -127,44 +127,52 @@ func ListUser(ctx context.Context, input ListUserInput) ([]Person, error) {
 
 func TestFunction(t *testing.T) {
 	cases := []struct {
-		msg    string
-		input  interface{}
-		output string
+		msg      string
+		input    interface{}
+		argNames []string
+		output   string
 	}{
 		{
-			msg:    "actual-func",
-			input:  ListUser,
-			output: "github.com/podhmo/reflect-shape_test.ListUser(context.Context, github.com/podhmo/reflect-shape_test.ListUserInput) (slice[github.com/podhmo/reflect-shape_test.Person], error)",
+			msg:      "actual-func",
+			input:    ListUser,
+			argNames: []string{"ctx", "args1"},
+			output:   "github.com/podhmo/reflect-shape_test.ListUser(context.Context, github.com/podhmo/reflect-shape_test.ListUserInput) (slice[github.com/podhmo/reflect-shape_test.Person], error)",
 		},
 		{
-			msg:    "simple",
-			input:  func(x, y int) int { return 0 },
-			output: "github.com/podhmo/reflect-shape_test.TestFunction.func(int, int) (int)",
+			msg:      "simple",
+			input:    func(x, y int) int { return 0 },
+			argNames: []string{"args0", "args1"},
+			output:   "github.com/podhmo/reflect-shape_test.TestFunction.func(int, int) (int)",
 		},
 		{
-			msg:    "with-context",
-			input:  func(ctx context.Context, x, y int) int { return 0 },
-			output: "github.com/podhmo/reflect-shape_test.TestFunction.func(context.Context, int, int) (int)",
+			msg:      "with-context",
+			input:    func(ctx context.Context, x, y int) int { return 0 },
+			argNames: []string{"ctx", "args1", "args2"},
+			output:   "github.com/podhmo/reflect-shape_test.TestFunction.func(context.Context, int, int) (int)",
 		},
 		{
-			msg:    "with-error",
-			input:  func(x, y int) (int, error) { return 0, nil },
-			output: "github.com/podhmo/reflect-shape_test.TestFunction.func(int, int) (int, error)",
+			msg:      "with-error",
+			input:    func(x, y int) (int, error) { return 0, nil },
+			argNames: []string{"args0", "args1"},
+			output:   "github.com/podhmo/reflect-shape_test.TestFunction.func(int, int) (int, error)",
 		},
 		{
-			msg:    "without-returns",
-			input:  func(s string) {},
-			output: "github.com/podhmo/reflect-shape_test.TestFunction.func(string) ()",
+			msg:      "without-returns",
+			input:    func(s string) {},
+			argNames: []string{"args0"},
+			output:   "github.com/podhmo/reflect-shape_test.TestFunction.func(string) ()",
 		},
 		{
-			msg:    "without-params",
-			input:  func() string { return "" },
-			output: "github.com/podhmo/reflect-shape_test.TestFunction.func() (string)",
+			msg:      "without-params",
+			input:    func() string { return "" },
+			argNames: []string{},
+			output:   "github.com/podhmo/reflect-shape_test.TestFunction.func() (string)",
 		},
 		{
-			msg:    "with-pointer",
-			input:  func(*string) string { return "" },
-			output: "github.com/podhmo/reflect-shape_test.TestFunction.func(*string) (string)",
+			msg:      "with-pointer",
+			input:    func(*string) string { return "" },
+			argNames: []string{"args0"},
+			output:   "github.com/podhmo/reflect-shape_test.TestFunction.func(*string) (string)",
 		},
 		{
 			msg: "var",
@@ -172,7 +180,8 @@ func TestFunction(t *testing.T) {
 				var handler EmitFunc = func(context.Context, io.Writer) error { return nil }
 				return handler
 			}(),
-			output: "github.com/podhmo/reflect-shape_test.TestFunction.func(context.Context, io.Writer) (error)",
+			argNames: []string{"ctx", "args1"},
+			output:   "github.com/podhmo/reflect-shape_test.TestFunction.func(context.Context, io.Writer) (error)",
 		},
 		{
 			msg: "var-nil",
@@ -180,7 +189,8 @@ func TestFunction(t *testing.T) {
 				var handler EmitFunc
 				return handler
 			}(),
-			output: "func(context.Context, io.Writer) (error)",
+			argNames: []string{"ctx", "args1"},
+			output:   "func(context.Context, io.Writer) (error)",
 		},
 	}
 
@@ -197,6 +207,9 @@ func TestFunction(t *testing.T) {
 			}
 			if want, got := c.output, normalize(fmt.Sprintf("%v", got)); want != got {
 				t.Errorf("Extract(), expected string expression is %q but %q", want, got)
+			}
+			if want, got := c.argNames, got.Params.Keys; !reflect.DeepEqual(want, got) {
+				t.Errorf("Extract(), expected args is %v but %v", want, got)
 			}
 		})
 	}
