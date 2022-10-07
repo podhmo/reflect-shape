@@ -25,10 +25,6 @@ type Shape interface {
 	GetPackage() string
 	GetLv() int
 
-	ResetName(string)
-	ResetPackage(string)
-	ResetReflectType(reflect.Type)
-
 	GetReflectKind() reflect.Kind
 	GetReflectType() reflect.Type
 	GetReflectValue() reflect.Value
@@ -96,9 +92,6 @@ func (v *Info) Shape() string {
 func (v *Info) GetName() string {
 	return v.Name
 }
-func (v *Info) ResetName(name string) {
-	v.Name = name
-}
 func (v *Info) GetFullName() string {
 	return strings.TrimPrefix(v.Package+"."+v.Name, ".")
 }
@@ -108,18 +101,11 @@ func (v *Info) GetLv() int {
 func (v *Info) GetPackage() string {
 	return v.Package
 }
-func (v *Info) ResetPackage(name string) {
-	v.Package = name
-}
 func (v *Info) GetReflectKind() reflect.Kind {
 	return reflect.Kind(v.Kind)
 }
 func (v *Info) GetReflectType() reflect.Type {
 	return v.reflectType
-}
-func (v *Info) ResetReflectType(rt reflect.Type) {
-	v.reflectType = rt
-	v.identity = ""
 }
 func (v *Info) GetReflectValue() reflect.Value {
 	return v.reflectValue
