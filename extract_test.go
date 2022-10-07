@@ -126,47 +126,47 @@ func ListUser(ctx context.Context, input ListUserInput) ([]Person, error) {
 func TestFunction(t *testing.T) {
 	cases := []struct {
 		msg    string
-		fn     interface{}
+		input  interface{}
 		output string
 	}{
 		{
 			msg:    "actual-func",
-			fn:     ListUser,
+			input:  ListUser,
 			output: "github.com/podhmo/reflect-shape_test.ListUser(context.Context, github.com/podhmo/reflect-shape_test.ListUserInput) (slice[github.com/podhmo/reflect-shape_test.Person], error)",
 		},
 		{
 			msg:    "simple",
-			fn:     func(x, y int) int { return 0 },
+			input:  func(x, y int) int { return 0 },
 			output: "github.com/podhmo/reflect-shape_test.TestFunction.func(int, int) (int)",
 		},
 		{
 			msg:    "with-context",
-			fn:     func(ctx context.Context, x, y int) int { return 0 },
+			input:  func(ctx context.Context, x, y int) int { return 0 },
 			output: "github.com/podhmo/reflect-shape_test.TestFunction.func(context.Context, int, int) (int)",
 		},
 		{
 			msg:    "with-error",
-			fn:     func(x, y int) (int, error) { return 0, nil },
+			input:  func(x, y int) (int, error) { return 0, nil },
 			output: "github.com/podhmo/reflect-shape_test.TestFunction.func(int, int) (int, error)",
 		},
 		{
 			msg:    "without-returns",
-			fn:     func(s string) {},
+			input:  func(s string) {},
 			output: "github.com/podhmo/reflect-shape_test.TestFunction.func(string) ()",
 		},
 		{
 			msg:    "without-params",
-			fn:     func() string { return "" },
+			input:  func() string { return "" },
 			output: "github.com/podhmo/reflect-shape_test.TestFunction.func() (string)",
 		},
 		{
 			msg:    "with-pointer",
-			fn:     func(*string) string { return "" },
+			input:  func(*string) string { return "" },
 			output: "github.com/podhmo/reflect-shape_test.TestFunction.func(*string) (string)",
 		},
 		{
 			msg: "var",
-			fn: func() interface{} {
+			input: func() interface{} {
 				var handler EmitFunc = func(context.Context, io.Writer) error { return nil }
 				return handler
 			}(),
@@ -174,7 +174,7 @@ func TestFunction(t *testing.T) {
 		},
 		{
 			msg: "var-nil",
-			fn: func() interface{} {
+			input: func() interface{} {
 				var handler EmitFunc
 				return handler
 			}(),
@@ -188,13 +188,13 @@ func TestFunction(t *testing.T) {
 	for _, c := range cases {
 		c := c
 		t.Run(c.msg, func(t *testing.T) {
-			got := reflectshape.Extract(c.fn)
-			_, ok := got.(reflectshape.Function)
+			s := reflectshape.Extract(c.input)
+			got, ok := s.(reflectshape.Function)
 			if !ok {
-				t.Errorf("expected Container, but %T", got)
+				t.Errorf("Extract(), expected type is Function, but %T", s)
 			}
-			if got, want := normalize(fmt.Sprintf("%v", got)), c.output; want != got {
-				t.Errorf("expected string expression is %q but %q", want, got)
+			if want, got := c.output, normalize(fmt.Sprintf("%v", got)); want != got {
+				t.Errorf("Extract(), expected string expression is %q but %q", want, got)
 			}
 		})
 	}
