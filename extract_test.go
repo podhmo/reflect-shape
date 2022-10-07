@@ -3,6 +3,7 @@ package reflectshape_test
 import (
 	"context"
 	"fmt"
+	"go/token"
 	"io"
 	"reflect"
 	"regexp"
@@ -10,6 +11,7 @@ import (
 	"time"
 
 	reflectshape "github.com/podhmo/reflect-shape"
+	"github.com/podhmo/reflect-shape/metadata"
 )
 
 type EmitFunc func(ctx context.Context, w io.Writer) error
@@ -195,6 +197,49 @@ func TestFunction(t *testing.T) {
 			}
 			if want, got := c.output, normalize(fmt.Sprintf("%v", got)); want != got {
 				t.Errorf("Extract(), expected string expression is %q but %q", want, got)
+			}
+		})
+	}
+}
+
+type DB struct {
+}
+
+func Foo(db *DB)        {}
+func Bar(anotherDB *DB) {}
+
+func TestFunctionArglistOfSameSignature(t *testing.T) {
+	lookup := metadata.NewLookup(token.NewFileSet())
+	cases := []struct {
+		msg            string
+		revisitArgList bool
+		lookup         *metadata.Lookup
+		input0         interface{}
+		args0          []string
+		input1         interface{}
+		args1          []string
+	}{
+		{msg: "no-lookup", lookup: nil, revisitArgList: false, input0: Foo, args0: []string{"args0"}, input1: Bar, args1: []string{"args0"}},
+		{msg: "revisit-disabled", lookup: lookup, revisitArgList: false, input0: Foo, args0: []string{"db"}, input1: Bar, args1: []string{"db"}}, // shared
+		{msg: "revisit-enabled", lookup: lookup, revisitArgList: true, input0: Foo, args0: []string{"db"}, input1: Bar, args1: []string{"anotherDB"}},
+	}
+	for _, c := range cases {
+		c := c
+		t.Run(c.msg, func(t *testing.T) {
+			e := reflectshape.NewExtractor()
+			e.MetadataLookup = c.lookup
+			e.RevisitArglist = c.revisitArgList
+			{
+				s := e.Extract(c.input0).(reflectshape.Function)
+				if want, got := c.args0, s.Params.Keys; !reflect.DeepEqual(want, got) {
+					t.Errorf("Extract(), %s's expected args is %v but got %v", s.Name, want, got)
+				}
+			}
+			{
+				s := e.Extract(c.input1).(reflectshape.Function)
+				if want, got := c.args1, s.Params.Keys; !reflect.DeepEqual(want, got) {
+					t.Errorf("Extract(), %s's expected args is %v but got %v", s.Name, want, got)
+				}
 			}
 		})
 	}
