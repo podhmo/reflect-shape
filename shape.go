@@ -2,6 +2,7 @@ package reflectshape
 
 import (
 	"fmt"
+	"go/token"
 	"reflect"
 	"strings"
 )
@@ -251,7 +252,7 @@ func (v *Struct) Methods() FunctionSet {
 		for i := 0; i < n; i++ {
 			method := rt.Method(i)
 			name := method.Name
-			if strings.ToUpper(name[:1]) != name[:1] {
+			if !token.IsExported(name) {
 				continue
 			}
 

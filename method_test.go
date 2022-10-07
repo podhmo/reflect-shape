@@ -4,7 +4,6 @@ import (
 	"context"
 	"go/token"
 	"reflect"
-	"strings"
 	"testing"
 
 	reflectshape "github.com/podhmo/reflect-shape"
@@ -37,7 +36,7 @@ func TestMethod(t *testing.T) {
 	})
 	t.Run("unexported method", func(t *testing.T) {
 		for _, name := range mmap.Names {
-			if strings.ToLower(name[:1]) == name[:1] {
+			if !token.IsExported(name) {
 				t.Errorf("unexported method is found, %s", name)
 			}
 		}
