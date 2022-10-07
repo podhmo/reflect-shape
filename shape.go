@@ -139,9 +139,8 @@ func (v *Info) doc(s Shape) string {
 	if e.MetadataLookup == nil {
 		return ""
 	}
-	mob, err := e.MetadataLookup.LookupFromStructForReflectType(v.reflectType)
+	mob, err := e.MetadataLookup.LookupFromTypeForReflectType(v.reflectType)
 	if err != nil {
-		fmt.Println("@@", err)
 		if e.OnError != nil {
 			e.OnError(s, err, "Doc")
 		}
