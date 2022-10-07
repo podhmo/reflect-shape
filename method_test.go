@@ -12,7 +12,7 @@ import (
 
 type something struct{}
 
-func (s *something) ExportedMethod(ctx context.Context, foo string) string            { return "" }
+func (s something) ExportedMethod(ctx context.Context, foo string) string             { return "" }
 func (s *something) unexportedMethod(ctx context.Context) string                      { return "" } //nolint
 func (s *something) AnotherExportedMethod(ctx context.Context, another string) string { return "" }
 

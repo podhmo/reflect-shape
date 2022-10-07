@@ -223,10 +223,6 @@ func (v *Struct) Methods() FunctionSet {
 	methodMap := FunctionSet{Functions: map[string]Function{}}
 	rt := v.reflectType
 
-	for i := v.GetLv(); i == 0; i-- {
-		rt = rt.Elem()
-	}
-
 	seen := map[string]bool{}
 	candidates := []reflect.Type{rt, reflect.PtrTo(rt)}
 
