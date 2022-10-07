@@ -14,11 +14,6 @@ import (
 
 type EmitFunc func(ctx context.Context, w io.Writer) error
 
-type Person struct {
-	Name string `json:"name"`
-	Age  int
-}
-
 func TestPrimitive(t *testing.T) {
 	type MyInt int // new type
 	type MyInt2 = int
@@ -36,53 +31,49 @@ func TestPrimitive(t *testing.T) {
 		t.Run(c.msg, func(t *testing.T) {
 			got := reflectshape.Extract(c.input)
 			if _, ok := got.(reflectshape.Primitive); !ok {
-				t.Errorf("expected Primitive, but %T", got)
+				t.Errorf("Extract(), expected type is Primitive, but %T", got)
 			}
 			// format
 			if want, got := c.output, fmt.Sprintf("%v", got); want != got {
-				t.Errorf("expected string expression is %q but %q", want, got)
+				t.Errorf("Extract(), expected string expression is %q but %q", want, got)
 			}
 		})
 	}
 }
 
 func TestStruct(t *testing.T) {
-	t.Run("user defined", func(t *testing.T) {
-		got := reflectshape.Extract(Person{})
-		v, ok := got.(reflectshape.Struct)
-		if !ok {
-			t.Errorf("expected Struct, but %T", got)
-		}
+	type Person struct {
+		Name string `json:"name"`
+		Age  int
+	}
 
-		if len(v.Fields.Values) != 2 {
-			t.Errorf("expected the number of Person's fields is 1, but %v", len(v.Fields.Values))
-		}
+	cases := []struct {
+		msg        string
+		input      interface{}
+		fieldNames []string
+		output     string
+	}{
+		{msg: "user defined", input: Person{}, fieldNames: []string{"Name", "Age"}, output: "github.com/podhmo/reflect-shape_test.Person"},
+		{msg: "stdlib", input: time.Now(), fieldNames: []string{"wall", "ext", "loc"}, output: "time.Time"},
+	}
 
-		if got := v.FieldName(0); got != "name" {
-			t.Errorf("expected field name with json tag is %q, but %q", "name", got)
-		}
-		if got := v.FieldName(1); got != "Age" {
-			t.Errorf("expected field name without json tag is %q, but %q", "name", got)
-		}
+	for _, c := range cases {
+		t.Run(c.msg, func(t *testing.T) {
+			s := reflectshape.Extract(c.input)
+			got, ok := s.(reflectshape.Struct)
+			if !ok {
+				t.Fatalf("Extract(), expected type is Struct, but %T", s)
+			}
+			if want, got := c.fieldNames, got.Fields.Keys; !reflect.DeepEqual(want, got) {
+				t.Fatalf("Extract(), expected fieldNames is %v, but %v", want, got)
+			}
 
-		// format
-		if got, want := fmt.Sprintf("%v", got), "github.com/podhmo/reflect-shape_test.Person"; want != got {
-			t.Errorf("expected string expression is %q but %q", want, got)
-		}
-	})
-
-	t.Run("time.Time", func(t *testing.T) {
-		var z time.Time
-		got := reflectshape.Extract(z)
-		if _, ok := got.(reflectshape.Struct); !ok {
-			t.Errorf("expected Struct, but %T", got)
-		}
-
-		// format
-		if got := fmt.Sprintf("%v", got); got != "time.Time" {
-			t.Errorf("expected string expression is %q but %q", "int", got)
-		}
-	})
+			// format
+			if want, got := c.output, fmt.Sprintf("%v", got); want != got {
+				t.Errorf("Extract(), expected string expression is %q but %q", want, got)
+			}
+		})
+	}
 }
 
 func TestContainer(t *testing.T) {
@@ -184,6 +175,11 @@ func TestContainer(t *testing.T) {
 type ListUserInput struct {
 	Query string
 	Limit int
+}
+
+type Person struct {
+	Name string `json:"name"`
+	Age  int
 }
 
 func ListUser(ctx context.Context, input ListUserInput) ([]Person, error) {
