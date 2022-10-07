@@ -20,43 +20,30 @@ type Person struct {
 }
 
 func TestPrimitive(t *testing.T) {
-	t.Run("int", func(t *testing.T) {
-		got := reflectshape.Extract(1)
-		if _, ok := got.(reflectshape.Primitive); !ok {
-			t.Errorf("expected Primitive, but %T", got)
-		}
+	type MyInt int // new type
+	type MyInt2 = int
 
-		// format
-		if got := fmt.Sprintf("%v", got); got != "int" {
-			t.Errorf("expected string expression is %q but %q", "int", got)
-		}
-	})
-
-	t.Run("new type", func(t *testing.T) {
-		type MyInt int
-		got := reflectshape.Extract(MyInt(1))
-		if _, ok := got.(reflectshape.Primitive); !ok {
-			t.Errorf("expected Primitive, but %T", got)
-		}
-
-		// format
-		if got, want := fmt.Sprintf("%v", got), "github.com/podhmo/reflect-shape_test.MyInt"; want != got {
-			t.Errorf("expected string expression is %q but %q", want, got)
-		}
-	})
-
-	t.Run("type alias", func(t *testing.T) {
-		type MyInt = int
-		got := reflectshape.Extract(MyInt(1))
-		if _, ok := got.(reflectshape.Primitive); !ok {
-			t.Errorf("expected Primitive, but %T", got)
-		}
-
-		// format
-		if got, want := fmt.Sprintf("%v", got), "int"; want != got {
-			t.Errorf("expected string expression is %q but %q", want, got)
-		}
-	})
+	cases := []struct {
+		msg    string
+		input  interface{}
+		output string
+	}{
+		{msg: "int", input: 1, output: "int"},
+		{msg: "new type", input: MyInt(1), output: "github.com/podhmo/reflect-shape_test.MyInt"},
+		{msg: "type alias", input: MyInt2(1), output: "int"},
+	}
+	for _, c := range cases {
+		t.Run(c.msg, func(t *testing.T) {
+			got := reflectshape.Extract(c.input)
+			if _, ok := got.(reflectshape.Primitive); !ok {
+				t.Errorf("expected Primitive, but %T", got)
+			}
+			// format
+			if want, got := c.output, fmt.Sprintf("%v", got); want != got {
+				t.Errorf("expected string expression is %q but %q", want, got)
+			}
+		})
+	}
 }
 
 func TestStruct(t *testing.T) {
