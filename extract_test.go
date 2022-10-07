@@ -3,6 +3,7 @@ package reflectshape_test
 import (
 	"context"
 	"fmt"
+	"go/token"
 	"io"
 	"reflect"
 	"regexp"
@@ -10,193 +11,114 @@ import (
 	"time"
 
 	reflectshape "github.com/podhmo/reflect-shape"
+	"github.com/podhmo/reflect-shape/metadata"
 )
 
 type EmitFunc func(ctx context.Context, w io.Writer) error
 
-type Person struct {
-	Name string `json:"name"`
-	Age  int
-}
-
 func TestPrimitive(t *testing.T) {
-	t.Run("int", func(t *testing.T) {
-		got := reflectshape.Extract(1)
-		if _, ok := got.(reflectshape.Primitive); !ok {
-			t.Errorf("expected Primitive, but %T", got)
-		}
+	type MyInt int // new type
+	type MyInt2 = int
 
-		// format
-		if got := fmt.Sprintf("%v", got); got != "int" {
-			t.Errorf("expected string expression is %q but %q", "int", got)
-		}
-	})
-
-	t.Run("new type", func(t *testing.T) {
-		type MyInt int
-		got := reflectshape.Extract(MyInt(1))
-		if _, ok := got.(reflectshape.Primitive); !ok {
-			t.Errorf("expected Primitive, but %T", got)
-		}
-
-		// format
-		if got, want := fmt.Sprintf("%v", got), "github.com/podhmo/reflect-shape_test.MyInt"; want != got {
-			t.Errorf("expected string expression is %q but %q", want, got)
-		}
-	})
-
-	t.Run("type alias", func(t *testing.T) {
-		type MyInt = int
-		got := reflectshape.Extract(MyInt(1))
-		if _, ok := got.(reflectshape.Primitive); !ok {
-			t.Errorf("expected Primitive, but %T", got)
-		}
-
-		// format
-		if got, want := fmt.Sprintf("%v", got), "int"; want != got {
-			t.Errorf("expected string expression is %q but %q", want, got)
-		}
-	})
+	i := 0
+	cases := []struct {
+		msg    string
+		input  interface{}
+		output string
+	}{
+		{msg: "int", input: 1, output: "int"},
+		{msg: "new type", input: MyInt(1), output: "github.com/podhmo/reflect-shape_test.MyInt"},
+		{msg: "type alias", input: MyInt2(1), output: "int"},
+		{msg: "pointer", input: &i, output: "*int"},
+	}
+	for _, c := range cases {
+		t.Run(c.msg, func(t *testing.T) {
+			got := reflectshape.Extract(c.input)
+			if _, ok := got.(reflectshape.Primitive); !ok {
+				t.Errorf("Extract(), expected type is Primitive, but %T", got)
+			}
+			// format
+			if want, got := c.output, fmt.Sprintf("%v", got); want != got {
+				t.Errorf("Extract(), expected string expression is %q but %q", want, got)
+			}
+		})
+	}
 }
 
 func TestStruct(t *testing.T) {
-	t.Run("user defined", func(t *testing.T) {
-		got := reflectshape.Extract(Person{})
-		v, ok := got.(reflectshape.Struct)
-		if !ok {
-			t.Errorf("expected Struct, but %T", got)
-		}
+	type Person struct {
+		Name string `json:"name"`
+		Age  int
+	}
 
-		if len(v.Fields.Values) != 2 {
-			t.Errorf("expected the number of Person's fields is 1, but %v", len(v.Fields.Values))
-		}
+	cases := []struct {
+		msg        string
+		input      interface{}
+		fieldNames []string
+		output     string
+	}{
+		{msg: "user defined", input: Person{}, fieldNames: []string{"Name", "Age"}, output: "github.com/podhmo/reflect-shape_test.Person"},
+		{msg: "stdlib", input: time.Now(), fieldNames: []string{"wall", "ext", "loc"}, output: "time.Time"},
+	}
 
-		if got := v.FieldName(0); got != "name" {
-			t.Errorf("expected field name with json tag is %q, but %q", "name", got)
-		}
-		if got := v.FieldName(1); got != "Age" {
-			t.Errorf("expected field name without json tag is %q, but %q", "name", got)
-		}
+	for _, c := range cases {
+		t.Run(c.msg, func(t *testing.T) {
+			s := reflectshape.Extract(c.input)
+			got, ok := s.(reflectshape.Struct)
+			if !ok {
+				t.Fatalf("Extract(), expected type is Struct, but %T", s)
+			}
+			if want, got := c.fieldNames, got.Fields.Keys; !reflect.DeepEqual(want, got) {
+				t.Fatalf("Extract(), expected fieldNames is %v, but %v", want, got)
+			}
 
-		// format
-		if got, want := fmt.Sprintf("%v", got), "github.com/podhmo/reflect-shape_test.Person"; want != got {
-			t.Errorf("expected string expression is %q but %q", want, got)
-		}
-	})
-
-	t.Run("time.Time", func(t *testing.T) {
-		var z time.Time
-		got := reflectshape.Extract(z)
-		if _, ok := got.(reflectshape.Struct); !ok {
-			t.Errorf("expected Struct, but %T", got)
-		}
-
-		// format
-		if got := fmt.Sprintf("%v", got); got != "time.Time" {
-			t.Errorf("expected string expression is %q but %q", "int", got)
-		}
-	})
+			// format
+			if want, got := c.output, fmt.Sprintf("%v", got); want != got {
+				t.Errorf("Extract(), expected string expression is %q but %q", want, got)
+			}
+		})
+	}
 }
 
 func TestContainer(t *testing.T) {
-	t.Run("slice", func(t *testing.T) {
-		t.Run("primitive", func(t *testing.T) {
-			got := reflectshape.Extract([]int{})
-			v, ok := got.(reflectshape.Container)
-			if !ok {
-				t.Errorf("expected Container, but %T", got)
-			}
-			if got := len(v.Args); got != 1 {
-				t.Errorf("expected the length of slices's args is %v, but %v", 1, got)
-			}
+	type V struct{}
 
-			if got, want := fmt.Sprintf("%v", got), "slice[int]"; want != got {
-				t.Errorf("expected string expression is %q but %q", want, got)
-			}
-		})
-		t.Run("primitive has len", func(t *testing.T) {
-			got := reflectshape.Extract([]int{1, 2, 3})
-			v, ok := got.(reflectshape.Container)
+	cases := []struct {
+		msg    string
+		input  interface{}
+		output string
+	}{
+		{msg: "slice-primitive", input: []int{}, output: "slice[int]"},
+		{msg: "slice-primitive2", input: []int{1, 2, 3}, output: "slice[int]"},
+		{msg: "slice-struct", input: []V{}, output: "slice[github.com/podhmo/reflect-shape_test.V]"},
+		{msg: "map-primitive", input: map[string]int{}, output: "map[string, int]"},
+		{msg: "map-primitive2", input: map[string]int{"foo": 20}, output: "map[string, int]"},
+		{msg: "map-primitive3", input: map[string]**int{}, output: "map[string, **int]"},
+		{msg: "map-struct", input: map[string]V{}, output: "map[string, github.com/podhmo/reflect-shape_test.V]"},
+	}
+	for _, c := range cases {
+		t.Run(c.msg, func(t *testing.T) {
+			s := reflectshape.Extract(c.input)
+			got, ok := s.(reflectshape.Container)
 			if !ok {
-				t.Errorf("expected Container, but %T", got)
+				t.Errorf("Extract(), expected type is Container, but %T", s)
 			}
-			if got := len(v.Args); got != 1 {
-				t.Errorf("expected the length of slices's args is %v, but %v", 1, got)
-			}
-
-			if got, want := fmt.Sprintf("%v", got), "slice[int]"; want != got {
-				t.Errorf("expected string expression is %q but %q", want, got)
-			}
-		})
-		t.Run("struct", func(t *testing.T) {
-			got := reflectshape.Extract([]Person{})
-			v, ok := got.(reflectshape.Container)
-			if !ok {
-				t.Errorf("expected Container, but %T", got)
-			}
-			if got := len(v.Args); got != 1 {
-				t.Errorf("expected the length of slices's args is %v, but %v", 1, got)
-			}
-
 			// format
-			if got, want := fmt.Sprintf("%v", got), "slice[github.com/podhmo/reflect-shape_test.Person]"; want != got {
-				t.Errorf("expected string expression is %q but %q", want, got)
+			if want, got := c.output, fmt.Sprintf("%v", got); want != got {
+				t.Errorf("Extract(), expected string expression is %q but %q", want, got)
 			}
 		})
-	})
-
-	t.Run("map", func(t *testing.T) {
-		t.Run("primitive", func(t *testing.T) {
-			got := reflectshape.Extract(map[string]int{})
-			v, ok := got.(reflectshape.Container)
-			if !ok {
-				t.Errorf("expected Container, but %T", got)
-			}
-			if got := len(v.Args); got != 2 {
-				t.Errorf("expected the length of slices's args is %v, but %v", 1, got)
-			}
-
-			// format
-			if got, want := fmt.Sprintf("%v", got), "map[string, int]"; want != got {
-				t.Errorf("expected string expression is %q but %q", want, got)
-			}
-		})
-		t.Run("primitive has len", func(t *testing.T) {
-			got := reflectshape.Extract(map[string]int{"foo": 20})
-			v, ok := got.(reflectshape.Container)
-			if !ok {
-				t.Errorf("expected Container, but %T", got)
-			}
-			if got := len(v.Args); got != 2 {
-				t.Errorf("expected the length of slices's args is %v, but %v", 1, got)
-			}
-
-			// format
-			if got, want := fmt.Sprintf("%v", got), "map[string, int]"; want != got {
-				t.Errorf("expected string expression is %q but %q", want, got)
-			}
-		})
-		t.Run("struct", func(t *testing.T) {
-			got := reflectshape.Extract(map[string][]Person{})
-			v, ok := got.(reflectshape.Container)
-			if !ok {
-				t.Errorf("expected Container, but %T", got)
-			}
-			if got := len(v.Args); got != 2 {
-				t.Errorf("expected the length of slices's args is %v, but %v", 1, got)
-			}
-
-			// format
-			if got, want := fmt.Sprintf("%v", got), "map[string, slice[github.com/podhmo/reflect-shape_test.Person]]"; want != got {
-				t.Errorf("expected string expression is %q but %q", want, got)
-			}
-		})
-	})
+	}
 }
 
 type ListUserInput struct {
 	Query string
 	Limit int
+}
+
+type Person struct {
+	Name string `json:"name"`
+	Age  int
 }
 
 func ListUser(ctx context.Context, input ListUserInput) ([]Person, error) {
@@ -206,47 +128,47 @@ func ListUser(ctx context.Context, input ListUserInput) ([]Person, error) {
 func TestFunction(t *testing.T) {
 	cases := []struct {
 		msg    string
-		fn     interface{}
+		input  interface{}
 		output string
 	}{
 		{
 			msg:    "actual-func",
-			fn:     ListUser,
+			input:  ListUser,
 			output: "github.com/podhmo/reflect-shape_test.ListUser(context.Context, github.com/podhmo/reflect-shape_test.ListUserInput) (slice[github.com/podhmo/reflect-shape_test.Person], error)",
 		},
 		{
 			msg:    "simple",
-			fn:     func(x, y int) int { return 0 },
+			input:  func(x, y int) int { return 0 },
 			output: "github.com/podhmo/reflect-shape_test.TestFunction.func(int, int) (int)",
 		},
 		{
 			msg:    "with-context",
-			fn:     func(ctx context.Context, x, y int) int { return 0 },
+			input:  func(ctx context.Context, x, y int) int { return 0 },
 			output: "github.com/podhmo/reflect-shape_test.TestFunction.func(context.Context, int, int) (int)",
 		},
 		{
 			msg:    "with-error",
-			fn:     func(x, y int) (int, error) { return 0, nil },
+			input:  func(x, y int) (int, error) { return 0, nil },
 			output: "github.com/podhmo/reflect-shape_test.TestFunction.func(int, int) (int, error)",
 		},
 		{
 			msg:    "without-returns",
-			fn:     func(s string) {},
+			input:  func(s string) {},
 			output: "github.com/podhmo/reflect-shape_test.TestFunction.func(string) ()",
 		},
 		{
 			msg:    "without-params",
-			fn:     func() string { return "" },
+			input:  func() string { return "" },
 			output: "github.com/podhmo/reflect-shape_test.TestFunction.func() (string)",
 		},
 		{
 			msg:    "with-pointer",
-			fn:     func(*string) string { return "" },
+			input:  func(*string) string { return "" },
 			output: "github.com/podhmo/reflect-shape_test.TestFunction.func(*string) (string)",
 		},
 		{
 			msg: "var",
-			fn: func() interface{} {
+			input: func() interface{} {
 				var handler EmitFunc = func(context.Context, io.Writer) error { return nil }
 				return handler
 			}(),
@@ -254,7 +176,7 @@ func TestFunction(t *testing.T) {
 		},
 		{
 			msg: "var-nil",
-			fn: func() interface{} {
+			input: func() interface{} {
 				var handler EmitFunc
 				return handler
 			}(),
@@ -268,13 +190,56 @@ func TestFunction(t *testing.T) {
 	for _, c := range cases {
 		c := c
 		t.Run(c.msg, func(t *testing.T) {
-			got := reflectshape.Extract(c.fn)
-			_, ok := got.(reflectshape.Function)
+			s := reflectshape.Extract(c.input)
+			got, ok := s.(reflectshape.Function)
 			if !ok {
-				t.Errorf("expected Container, but %T", got)
+				t.Errorf("Extract(), expected type is Function, but %T", s)
 			}
-			if got, want := normalize(fmt.Sprintf("%v", got)), c.output; want != got {
-				t.Errorf("expected string expression is %q but %q", want, got)
+			if want, got := c.output, normalize(fmt.Sprintf("%v", got)); want != got {
+				t.Errorf("Extract(), expected string expression is %q but %q", want, got)
+			}
+		})
+	}
+}
+
+type DB struct {
+}
+
+func Foo(db *DB)        {}
+func Bar(anotherDB *DB) {}
+
+func TestFunctionArglistOfSameSignature(t *testing.T) {
+	lookup := metadata.NewLookup(token.NewFileSet())
+	cases := []struct {
+		msg            string
+		revisitArgList bool
+		lookup         *metadata.Lookup
+		input0         interface{}
+		args0          []string
+		input1         interface{}
+		args1          []string
+	}{
+		{msg: "no-lookup", lookup: nil, revisitArgList: false, input0: Foo, args0: []string{"args0"}, input1: Bar, args1: []string{"args0"}},
+		{msg: "revisit-disabled", lookup: lookup, revisitArgList: false, input0: Foo, args0: []string{"db"}, input1: Bar, args1: []string{"db"}}, // shared
+		{msg: "revisit-enabled", lookup: lookup, revisitArgList: true, input0: Foo, args0: []string{"db"}, input1: Bar, args1: []string{"anotherDB"}},
+	}
+	for _, c := range cases {
+		c := c
+		t.Run(c.msg, func(t *testing.T) {
+			e := reflectshape.NewExtractor()
+			e.MetadataLookup = c.lookup
+			e.RevisitArglist = c.revisitArgList
+			{
+				s := e.Extract(c.input0).(reflectshape.Function)
+				if want, got := c.args0, s.Params.Keys; !reflect.DeepEqual(want, got) {
+					t.Errorf("Extract(), %s's expected args is %v but got %v", s.Name, want, got)
+				}
+			}
+			{
+				s := e.Extract(c.input1).(reflectshape.Function)
+				if want, got := c.args1, s.Params.Keys; !reflect.DeepEqual(want, got) {
+					t.Errorf("Extract(), %s's expected args is %v but got %v", s.Name, want, got)
+				}
 			}
 		})
 	}
