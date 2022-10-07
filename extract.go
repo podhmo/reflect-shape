@@ -96,7 +96,7 @@ func (e *Extractor) extract(
 
 	// todo: switch
 	switch kind {
-	case reflect.Ptr:
+	case reflect.Pointer:
 		if rv != rnil {
 			inner = rv.Elem()
 		}
