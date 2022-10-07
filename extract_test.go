@@ -18,6 +18,7 @@ func TestPrimitive(t *testing.T) {
 	type MyInt int // new type
 	type MyInt2 = int
 
+	i := 0
 	cases := []struct {
 		msg    string
 		input  interface{}
@@ -26,6 +27,7 @@ func TestPrimitive(t *testing.T) {
 		{msg: "int", input: 1, output: "int"},
 		{msg: "new type", input: MyInt(1), output: "github.com/podhmo/reflect-shape_test.MyInt"},
 		{msg: "type alias", input: MyInt2(1), output: "int"},
+		{msg: "pointer", input: &i, output: "*int"},
 	}
 	for _, c := range cases {
 		t.Run(c.msg, func(t *testing.T) {
@@ -77,99 +79,34 @@ func TestStruct(t *testing.T) {
 }
 
 func TestContainer(t *testing.T) {
-	t.Run("slice", func(t *testing.T) {
-		t.Run("primitive", func(t *testing.T) {
-			got := reflectshape.Extract([]int{})
-			v, ok := got.(reflectshape.Container)
-			if !ok {
-				t.Errorf("expected Container, but %T", got)
-			}
-			if got := len(v.Args); got != 1 {
-				t.Errorf("expected the length of slices's args is %v, but %v", 1, got)
-			}
+	type V struct{}
 
-			if got, want := fmt.Sprintf("%v", got), "slice[int]"; want != got {
-				t.Errorf("expected string expression is %q but %q", want, got)
-			}
-		})
-		t.Run("primitive has len", func(t *testing.T) {
-			got := reflectshape.Extract([]int{1, 2, 3})
-			v, ok := got.(reflectshape.Container)
+	cases := []struct {
+		msg    string
+		input  interface{}
+		output string
+	}{
+		{msg: "slice-primitive", input: []int{}, output: "slice[int]"},
+		{msg: "slice-primitive2", input: []int{1, 2, 3}, output: "slice[int]"},
+		{msg: "slice-struct", input: []V{}, output: "slice[github.com/podhmo/reflect-shape_test.V]"},
+		{msg: "map-primitive", input: map[string]int{}, output: "map[string, int]"},
+		{msg: "map-primitive2", input: map[string]int{"foo": 20}, output: "map[string, int]"},
+		{msg: "map-primitive3", input: map[string]**int{}, output: "map[string, **int]"},
+		{msg: "map-struct", input: map[string]V{}, output: "map[string, github.com/podhmo/reflect-shape_test.V]"},
+	}
+	for _, c := range cases {
+		t.Run(c.msg, func(t *testing.T) {
+			s := reflectshape.Extract(c.input)
+			got, ok := s.(reflectshape.Container)
 			if !ok {
-				t.Errorf("expected Container, but %T", got)
+				t.Errorf("Extract(), expected type is Container, but %T", s)
 			}
-			if got := len(v.Args); got != 1 {
-				t.Errorf("expected the length of slices's args is %v, but %v", 1, got)
-			}
-
-			if got, want := fmt.Sprintf("%v", got), "slice[int]"; want != got {
-				t.Errorf("expected string expression is %q but %q", want, got)
-			}
-		})
-		t.Run("struct", func(t *testing.T) {
-			got := reflectshape.Extract([]Person{})
-			v, ok := got.(reflectshape.Container)
-			if !ok {
-				t.Errorf("expected Container, but %T", got)
-			}
-			if got := len(v.Args); got != 1 {
-				t.Errorf("expected the length of slices's args is %v, but %v", 1, got)
-			}
-
 			// format
-			if got, want := fmt.Sprintf("%v", got), "slice[github.com/podhmo/reflect-shape_test.Person]"; want != got {
-				t.Errorf("expected string expression is %q but %q", want, got)
+			if want, got := c.output, fmt.Sprintf("%v", got); want != got {
+				t.Errorf("Extract(), expected string expression is %q but %q", want, got)
 			}
 		})
-	})
-
-	t.Run("map", func(t *testing.T) {
-		t.Run("primitive", func(t *testing.T) {
-			got := reflectshape.Extract(map[string]int{})
-			v, ok := got.(reflectshape.Container)
-			if !ok {
-				t.Errorf("expected Container, but %T", got)
-			}
-			if got := len(v.Args); got != 2 {
-				t.Errorf("expected the length of slices's args is %v, but %v", 1, got)
-			}
-
-			// format
-			if got, want := fmt.Sprintf("%v", got), "map[string, int]"; want != got {
-				t.Errorf("expected string expression is %q but %q", want, got)
-			}
-		})
-		t.Run("primitive has len", func(t *testing.T) {
-			got := reflectshape.Extract(map[string]int{"foo": 20})
-			v, ok := got.(reflectshape.Container)
-			if !ok {
-				t.Errorf("expected Container, but %T", got)
-			}
-			if got := len(v.Args); got != 2 {
-				t.Errorf("expected the length of slices's args is %v, but %v", 1, got)
-			}
-
-			// format
-			if got, want := fmt.Sprintf("%v", got), "map[string, int]"; want != got {
-				t.Errorf("expected string expression is %q but %q", want, got)
-			}
-		})
-		t.Run("struct", func(t *testing.T) {
-			got := reflectshape.Extract(map[string][]Person{})
-			v, ok := got.(reflectshape.Container)
-			if !ok {
-				t.Errorf("expected Container, but %T", got)
-			}
-			if got := len(v.Args); got != 2 {
-				t.Errorf("expected the length of slices's args is %v, but %v", 1, got)
-			}
-
-			// format
-			if got, want := fmt.Sprintf("%v", got), "map[string, slice[github.com/podhmo/reflect-shape_test.Person]]"; want != got {
-				t.Errorf("expected string expression is %q but %q", want, got)
-			}
-		})
-	})
+	}
 }
 
 type ListUserInput struct {
