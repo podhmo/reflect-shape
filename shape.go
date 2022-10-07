@@ -20,15 +20,20 @@ func (k Kind) String() string {
 type Shape interface {
 	Shape() string
 
+	// GetName returns name something like `<name>`
 	GetName() string
+	// GetFullName returns fullname something like `<package path>.<name>`
 	GetFullName() string
+	// GetPackage returns package path like `<package path>`
 	GetPackage() string
+	// GetLV returns pointer's level (e.g. int is 0, *int is 1)
 	GetLv() int
 
 	GetReflectKind() reflect.Kind
 	GetReflectType() reflect.Type
 	GetReflectValue() reflect.Value
 
+	// GetIdentity returns id of the shape.
 	GetIdentity() Identity
 
 	Clone() Shape
