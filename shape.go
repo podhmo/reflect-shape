@@ -131,6 +131,22 @@ func (v *Info) Clone() *Info {
 	}
 }
 
+func (v *Info) doc(s Shape) string {
+	e := v.extractor
+	if e.MetadataLookup == nil {
+		return ""
+	}
+	mob, err := e.MetadataLookup.LookupFromStructForReflectType(v.reflectType)
+	if err != nil {
+		fmt.Println("@@", err)
+		if e.OnError != nil {
+			e.OnError(s, err, "Doc")
+		}
+		return ""
+	}
+	return mob.Doc()
+}
+
 type Primitive struct {
 	*Info
 }
@@ -149,6 +165,9 @@ func (v Primitive) Format(f fmt.State, c rune) {
 }
 func (v Primitive) deref(seen map[reflect.Type]Shape) Shape {
 	return v
+}
+func (v Primitive) Doc() string {
+	return v.Info.doc(v)
 }
 
 type FieldMetadata struct {
@@ -260,6 +279,9 @@ func (v *Struct) Methods() FunctionSet {
 	}
 	return methodMap
 }
+func (v Struct) Doc() string {
+	return v.Info.doc(v)
+}
 
 type Interface struct {
 	*Info
@@ -297,6 +319,9 @@ func (v Interface) deref(seen map[reflect.Type]Shape) Shape {
 		v.Methods.Values[i] = e.deref(seen)
 	}
 	return v
+}
+func (v Interface) Doc() string {
+	return v.Info.doc(v)
 }
 
 // for generics
@@ -338,11 +363,29 @@ func (v Container) deref(seen map[reflect.Type]Shape) Shape {
 	}
 	return v
 }
+func (v Container) Doc() string {
+	return v.Info.doc(v)
+}
 
 type Function struct {
 	*Info
 	Params  ShapeMap `json:"params"`  // for function's In
 	Returns ShapeMap `json:"returns"` // for function's Out
+}
+
+func (v Function) Doc() string {
+	e := v.Info.extractor
+	if e.MetadataLookup == nil {
+		return ""
+	}
+	mfunc, err := e.MetadataLookup.LookupFromFuncForPC(v.reflectValue.Pointer())
+	if err != nil {
+		if e.OnError != nil {
+			e.OnError(v, err, "Doc")
+		}
+		return ""
+	}
+	return mfunc.Doc()
 }
 
 func (v Function) Format(f fmt.State, c rune) {

@@ -1,5 +1,7 @@
 package main
 
+// run with `go run ./_examples/readme`
+
 import (
 	"fmt"
 	"go/token"
@@ -8,11 +10,13 @@ import (
 	"github.com/podhmo/reflect-shape/metadata"
 )
 
+// Person is person object
 type Person struct {
 	Name   string
 	Father *Person
 }
 
+// Hello returns a greeting message.
 func (p *Person) Hello() string {
 	return fmt.Sprintf("%s: hello", p.Name)
 }
@@ -26,6 +30,8 @@ func main() {
 
 	// shape is main.Person
 	fmt.Printf("shape is %v\n", shape)
+	// shape's doc is "Person is person object"
+	fmt.Printf("shape's doc is %q\n", shape.Doc())
 	fmt.Println("----------------------------------------")
 
 	// shape's fields are [Name, Father]
@@ -33,6 +39,8 @@ func main() {
 
 	// shape's methods are [Hello]
 	fmt.Printf("shape's methods are %v\n", shape.Methods().Names)
+	// shape.Hello() 's doc is "Hello returns a greeting message."
+	fmt.Printf("shape.Hello() 's doc is %q\n", shape.Methods().Functions["Hello"].Doc())
 
 	fmt.Println("----------------------------------------")
 	// shape's verbose output is *main.Person{Name, Father}

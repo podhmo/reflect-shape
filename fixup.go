@@ -16,7 +16,6 @@ func fixupArglist(lookup *metadata.Lookup, fn *Function, ob interface{}, fullnam
 		log.Printf("function %q, arglist lookup is failed: %+v", fullname, err)
 		return
 	}
-
 	d := 0
 	if isMethod && mfunc.Recv != "" { // is method
 		d = 1

@@ -22,6 +22,8 @@ type Extractor struct {
 	MetadataLookup *metadata.Lookup
 	RevisitArglist bool
 
+	OnError func(s Shape, err error, title string)
+
 	c int
 }
 

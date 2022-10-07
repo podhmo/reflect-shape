@@ -75,6 +75,10 @@ func (m *Func) Returns() []string {
 
 func (l *Lookup) LookupFromFunc(fn interface{}) (*Func, error) {
 	pc := reflect.ValueOf(fn).Pointer()
+	return l.LookupFromFuncForPC(pc)
+}
+
+func (l *Lookup) LookupFromFuncForPC(pc uintptr) (*Func, error) {
 	rfunc := l.accessor.FuncForPC(pc)
 	if rfunc == nil {
 		return nil, fmt.Errorf("cannot find runtime.Func")
@@ -162,8 +166,12 @@ func (s *Struct) FieldComments() map[string]string {
 
 func (l *Lookup) LookupFromStruct(ob interface{}) (*Struct, error) {
 	rt := reflect.TypeOf(ob)
+	return l.LookupFromStructForReflectType(rt)
+}
+func (l *Lookup) LookupFromStructForReflectType(rt reflect.Type) (*Struct, error) {
 	obname := rt.Name()
 	pkgpath := rt.PkgPath()
+
 	if pkgpath == "main" {
 		binfo, ok := debug.ReadBuildInfo()
 		if !ok {
@@ -216,5 +224,5 @@ func (l *Lookup) LookupFromStruct(ob interface{}) (*Struct, error) {
 		}
 		return &Struct{Raw: result}, nil
 	}
-	return nil, fmt.Errorf("lookup metadata of %T is failed %w", ob, ErrNotFound)
+	return nil, fmt.Errorf("lookup metadata of %v is failed %w", rt, ErrNotFound)
 }
