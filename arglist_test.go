@@ -14,7 +14,7 @@ type DB struct {
 func Foo(db *DB)        {}
 func Bar(anotherDB *DB) {}
 
-func TestRevisitArglist(t *testing.T) {
+func TestArglist(t *testing.T) {
 	fset := token.NewFileSet()
 	lookup := metadata.NewLookup(fset)
 
