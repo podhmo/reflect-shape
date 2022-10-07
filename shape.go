@@ -18,8 +18,6 @@ func (k Kind) String() string {
 }
 
 type Shape interface {
-	Shape() string
-
 	// GetName returns name something like `<name>`
 	GetName() string
 	// GetFullName returns fullname something like `<package path>.<name>`
@@ -91,9 +89,6 @@ func (v *Info) info() *Info {
 	return v
 }
 
-func (v *Info) Shape() string {
-	return v.Kind.String()
-}
 func (v *Info) GetName() string {
 	return v.Name
 }

@@ -13,14 +13,6 @@ type Article struct {
 
 func TestInfo(t *testing.T) {
 	got := reflectshape.Extract(Article{})
-
-	t.Run("Shape", func(t *testing.T) {
-		got := got.Shape()
-		want := "struct"
-		if want != got {
-			t.Errorf("expected %q, but %q", want, got)
-		}
-	})
 	t.Run("GetName", func(t *testing.T) {
 		got := got.GetName()
 		want := "Article"
