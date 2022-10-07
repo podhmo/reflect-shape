@@ -1,8 +1,3 @@
-# reflectshape
-
-reflect shape 
-
-```go
 package main
 
 import (
@@ -43,4 +38,3 @@ func main() {
 	// shape's verbose output is *main.Person{Name, Father}
 	fmt.Printf("shape's verbose output is %+v\n", shape)
 }
-```
