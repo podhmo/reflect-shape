@@ -27,6 +27,9 @@ type Shape interface {
 	// GetLV returns pointer's level (e.g. int is 0, *int is 1)
 	GetLv() int
 
+	// Doc returns doc-string
+	Doc() string
+
 	GetReflectKind() reflect.Kind
 	GetReflectType() reflect.Type
 	GetReflectValue() reflect.Value
@@ -451,3 +454,4 @@ func (v Unknown) deref(seen map[reflect.Type]Shape) Shape {
 	v.Info.completed = true
 	return v
 }
+func (v Unknown) Doc() string { return fmt.Sprintf("?? unknown of %v ??", v.Info.reflectType) }
