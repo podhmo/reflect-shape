@@ -324,3 +324,5 @@ func (v *ref) deref(seen map[reflect.Type]Shape) Shape {
 	seen[v.GetReflectType()] = r
 	return r
 }
+
+func (v *ref) Doc() string { return fmt.Sprintf("?? $ref of %v ??", v.originalRT) }

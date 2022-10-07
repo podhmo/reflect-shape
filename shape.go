@@ -27,6 +27,9 @@ type Shape interface {
 	// GetLV returns pointer's level (e.g. int is 0, *int is 1)
 	GetLv() int
 
+	// Doc returns doc-string
+	Doc() string
+
 	GetReflectKind() reflect.Kind
 	GetReflectType() reflect.Type
 	GetReflectValue() reflect.Value
@@ -136,9 +139,8 @@ func (v *Info) doc(s Shape) string {
 	if e.MetadataLookup == nil {
 		return ""
 	}
-	mob, err := e.MetadataLookup.LookupFromStructForReflectType(v.reflectType)
+	mob, err := e.MetadataLookup.LookupFromTypeForReflectType(v.reflectType)
 	if err != nil {
-		fmt.Println("@@", err)
 		if e.OnError != nil {
 			e.OnError(s, err, "Doc")
 		}
@@ -451,3 +453,4 @@ func (v Unknown) deref(seen map[reflect.Type]Shape) Shape {
 	v.Info.completed = true
 	return v
 }
+func (v Unknown) Doc() string { return fmt.Sprintf("?? unknown of %v ??", v.Info.reflectType) }

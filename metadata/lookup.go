@@ -118,7 +118,7 @@ func (l *Lookup) LookupFromFuncForPC(pc uintptr) (*Func, error) {
 	// fmt.Printf("pkgname:%-15s\trecv:%-10s\tname:%s\n", pkgname, recv, name)
 
 	if isMethod {
-		ob, ok := p.Structs[recv]
+		ob, ok := p.Types[recv]
 		if !ok {
 			return nil, fmt.Errorf("lookup metadata of method %s, %w", rfunc.Name(), ErrNotFound)
 		}
@@ -136,15 +136,15 @@ func (l *Lookup) LookupFromFuncForPC(pc uintptr) (*Func, error) {
 	}
 }
 
-type Struct struct {
+type Type struct {
 	Raw *collect.Object
 }
 
-func (s *Struct) Name() string {
+func (s *Type) Name() string {
 	return s.Raw.Name
 }
 
-func (s *Struct) Doc() string {
+func (s *Type) Doc() string {
 	doc := s.Raw.Doc
 	if doc == "" {
 		doc = s.Raw.Comment
@@ -152,7 +152,7 @@ func (s *Struct) Doc() string {
 	return strings.TrimSpace(doc)
 }
 
-func (s *Struct) FieldComments() map[string]string {
+func (s *Type) FieldComments() map[string]string {
 	comments := make(map[string]string, len(s.Raw.Fields))
 	for _, f := range s.Raw.Fields {
 		doc := f.Doc
@@ -164,11 +164,11 @@ func (s *Struct) FieldComments() map[string]string {
 	return comments
 }
 
-func (l *Lookup) LookupFromStruct(ob interface{}) (*Struct, error) {
+func (l *Lookup) LookupFromType(ob interface{}) (*Type, error) {
 	rt := reflect.TypeOf(ob)
-	return l.LookupFromStructForReflectType(rt)
+	return l.LookupFromTypeForReflectType(rt)
 }
-func (l *Lookup) LookupFromStructForReflectType(rt reflect.Type) (*Struct, error) {
+func (l *Lookup) LookupFromTypeForReflectType(rt reflect.Type) (*Type, error) {
 	obname := rt.Name()
 	pkgpath := rt.PkgPath()
 
@@ -218,11 +218,14 @@ func (l *Lookup) LookupFromStructForReflectType(rt reflect.Type) (*Struct, error
 		if err != nil {
 			return nil, fmt.Errorf("collect: dir=%s, name=%s, %w", pkg.PkgPath, obname, err)
 		}
-		result, ok := p.Structs[rt.Name()]
+		result, ok := p.Types[rt.Name()]
 		if !ok {
-			continue
+			result, ok = p.Interfaces[rt.Name()]
+			if !ok {
+				continue
+			}
 		}
-		return &Struct{Raw: result}, nil
+		return &Type{Raw: result}, nil
 	}
 	return nil, fmt.Errorf("lookup metadata of %v is failed %w", rt, ErrNotFound)
 }

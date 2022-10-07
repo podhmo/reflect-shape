@@ -3,6 +3,7 @@ package metadata
 import (
 	"context"
 	"go/token"
+	"reflect"
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
@@ -15,7 +16,7 @@ type Person struct {
 	Name string
 }
 
-func TestStruct(t *testing.T) {
+func TestType(t *testing.T) {
 	type result struct {
 		Name          string
 		Doc           string
@@ -34,7 +35,7 @@ func TestStruct(t *testing.T) {
 	l := NewLookup(fset)
 	l.IncludeGoTestFiles = true // for test
 
-	metadata, err := l.LookupFromStruct(Person{})
+	metadata, err := l.LookupFromType(Person{})
 	if err != nil {
 		t.Fatalf("unexpected error: %+v", err)
 	}
@@ -45,7 +46,7 @@ func TestStruct(t *testing.T) {
 	}
 
 	if diff := cmp.Diff(want, got); diff != "" {
-		t.Errorf("LookupFromStruct() mismatch (-want +got):\n%s", diff)
+		t.Errorf("LookupFromType() mismatch (-want +got):\n%s", diff)
 	}
 }
 
@@ -151,6 +152,57 @@ func TestMethod(t *testing.T) {
 				t.Errorf("LookupFromFunc() mismatch (-want +got):\n%s", diff)
 			}
 
+		})
+	}
+}
+
+// I is I
+type I interface {
+	// Foo is Foo
+	Foo()
+}
+
+func TestInterface(t *testing.T) {
+	type result struct {
+		Name string
+		Doc  string
+	}
+
+	var iface I
+	cases := []struct {
+		msg    string
+		want   result
+		target interface{}
+	}{
+		{
+			msg: "value",
+			want: result{
+				Name: "I",
+				Doc:  "I is I",
+			},
+			target: iface,
+		},
+	}
+
+	fset := token.NewFileSet()
+	l := NewLookup(fset)
+	l.IncludeGoTestFiles = true
+
+	for _, c := range cases {
+		c := c
+		t.Run(c.msg, func(t *testing.T) {
+			metadata, err := l.LookupFromTypeForReflectType(reflect.TypeOf(func() I { return nil }).Out(0))
+			if err != nil {
+				t.Fatalf("unexpected error: %+v", err)
+			}
+			got := result{
+				Name: metadata.Name(),
+				Doc:  metadata.Doc(),
+			}
+
+			if diff := cmp.Diff(c.want, got); diff != "" {
+				t.Errorf("LookupFromType() mismatch (-want +got):\n%s", diff)
+			}
 		})
 	}
 }
