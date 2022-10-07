@@ -4,7 +4,7 @@ go 1.18
 
 require (
 	github.com/google/go-cmp v0.5.8
-	github.com/podhmo/commentof v0.0.3
+	github.com/podhmo/commentof v0.1.0
 	golang.org/x/tools v0.1.12
 )
 
