@@ -425,32 +425,3 @@ func (v Unknown) deref(seen map[reflect.Type]Shape) Shape {
 	v.Info.completed = true
 	return v
 }
-
-type ref struct {
-	*Info
-	originalRT reflect.Type
-}
-
-func (v *ref) Clone() Shape {
-	return &ref{
-		Info:       v.Info.Clone(),
-		originalRT: v.originalRT,
-	}
-}
-func (v *ref) deref(seen map[reflect.Type]Shape) Shape {
-	if v.Info.completed {
-		return seen[v.GetReflectType()]
-	}
-
-	v.Info.completed = true
-	original := seen[v.originalRT]
-	if !original.info().completed {
-		original = original.deref(seen)
-		seen[v.originalRT] = original
-	}
-	r := original.Clone()
-	info := r.info()
-	info.Lv += v.Info.Lv
-	seen[v.GetReflectType()] = r
-	return r
-}
