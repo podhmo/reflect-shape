@@ -22,7 +22,7 @@ func TestIdentity(t *testing.T) {
 		y   any
 	}
 
-	t.Run("ok", func(t *testing.T) {
+	t.Run("equal", func(t *testing.T) {
 		cases := []testcase{
 			{msg: "same-struct", x: S0{}, y: S0{}},
 			{msg: "same-struct-pointer", x: S0{}, y: &S0{}},
@@ -43,7 +43,7 @@ func TestIdentity(t *testing.T) {
 		}
 	})
 
-	t.Run("ng", func(t *testing.T) {
+	t.Run("not-equal", func(t *testing.T) {
 		cases := []testcase{
 			{msg: "another-struct", x: S0{}, y: S1{}},
 			{msg: "another-function", x: F0, y: F1},
@@ -90,6 +90,7 @@ func TestPackageNames(t *testing.T) {
 
 		// cfg.Extract(F0) // not seen
 		shape := cfg.Extract(F1)
+
 		if got := shape.Package.Scope().Names(); !reflect.DeepEqual(want, got) {
 			t.Errorf("Package.Names(): %#+v != %#+v", want, got)
 		}
