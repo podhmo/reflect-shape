@@ -13,6 +13,7 @@ func (c *Config) Extract(ob interface{}) *Shape {
 	if c.extractor == nil {
 		c.extractor = &Extractor{
 			Config: c,
+			seen:   map[ID]*Shape{},
 		}
 	}
 	return c.extractor.Extract(ob)
@@ -21,7 +22,7 @@ func (c *Config) Extract(ob interface{}) *Shape {
 type Extractor struct {
 	Config *Config
 
-	seen     map[reflect.Type]*Shape
+	seen     map[ID]*Shape
 	packages map[string]*Package
 }
 
@@ -40,8 +41,13 @@ func (e *Extractor) Extract(ob interface{}) *Shape {
 		id.pc = rv.Pointer() // distinguish same signature function
 	}
 
-	// todo: cache
-	return &Shape{ID: id, Type: rt, Value: rv, e: e}
+	shape, ok := e.seen[id]
+	if ok {
+		return shape
+	}
+	shape = &Shape{ID: id, Type: rt, Value: rv, Number: len(e.seen), e: e}
+	e.seen[id] = shape
+	return shape
 }
 
 type Package struct {
@@ -57,7 +63,8 @@ type Shape struct {
 	Type  reflect.Type
 	Value reflect.Value
 
-	e *Extractor
+	Number int
+	e      *Extractor
 }
 
 func (s *Shape) Equal(another *Shape) bool {
@@ -67,8 +74,4 @@ func (s *Shape) Equal(another *Shape) bool {
 type ID struct {
 	rt reflect.Type
 	pc uintptr
-}
-
-func (id *ID) Kind() reflect.Kind {
-	return id.rt.Kind()
 }
