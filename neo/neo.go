@@ -141,10 +141,18 @@ type Scope struct {
 }
 
 func (s *Scope) Names() []string {
+	return s.names(false)
+}
+
+func (s *Scope) NamesWithMethod() []string {
+	return s.names(true)
+}
+
+func (s *Scope) names(withMethod bool) []string {
 	// anonymous function is not supported yet
 	r := make([]string, 0, len(s.shapes))
 	for name, s := range s.shapes {
-		if s.IsMethod {
+		if !withMethod && s.IsMethod {
 			continue
 		}
 		r = append(r, name)
