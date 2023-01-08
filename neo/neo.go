@@ -111,7 +111,7 @@ type Shape struct {
 	Type         reflect.Type
 	DefaultValue reflect.Value
 
-	Number  int
+	Number  int // If all shapes are from the same extractor, this value can be used as ID
 	Package *Package
 	e       *Extractor
 }
