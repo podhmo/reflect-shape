@@ -90,7 +90,6 @@ func TestPackageNames(t *testing.T) {
 
 		// cfg.Extract(F0) // not seen
 		shape := cfg.Extract(F1)
-
 		if got := shape.Package.Scope().Names(); !reflect.DeepEqual(want, got) {
 			t.Errorf("Package.Names(): %#+v != %#+v", want, got)
 		}
