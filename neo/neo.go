@@ -45,7 +45,7 @@ func (e *Extractor) Extract(ob interface{}) *Shape {
 	if ok {
 		return shape
 	}
-	shape = &Shape{ID: id, Type: rt, Value: rv, Number: len(e.seen), e: e}
+	shape = &Shape{ID: id, Type: rt, DefaultValue: rv, Number: len(e.seen), e: e}
 	e.seen[id] = shape
 	return shape
 }
@@ -59,9 +59,9 @@ type Package struct {
 }
 
 type Shape struct {
-	ID    ID
-	Type  reflect.Type
-	Value reflect.Value
+	ID           ID
+	Type         reflect.Type
+	DefaultValue reflect.Value
 
 	Number int
 	e      *Extractor
