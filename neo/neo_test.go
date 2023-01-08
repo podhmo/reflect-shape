@@ -1,6 +1,7 @@
 package neo_test
 
 import (
+	"reflect"
 	"testing"
 
 	"github.com/podhmo/reflect-shape/neo"
@@ -59,6 +60,39 @@ func TestIdentity(t *testing.T) {
 					t.Errorf("Shape.ID, must be %v != %v", c.x, c.y)
 				}
 			})
+		}
+	})
+}
+
+func TestPackageNames(t *testing.T) {
+	t.Run("one", func(t *testing.T) {
+		want := []string{"F0"}
+
+		cfg := &neo.Config{}
+		shape := cfg.Extract(F0)
+
+		if got := shape.Package.Scope().Names(); !reflect.DeepEqual(want, got) {
+			t.Errorf("Package.Names(): %#+v != %#+v", want, got)
+		}
+	})
+
+	t.Run("many", func(t *testing.T) {
+		want := []string{"F1", "S0", "S1"}
+
+		cfg := &neo.Config{}
+
+		cfg.Extract(S0{})
+		cfg.Extract(&S0{})
+		cfg.Extract(&S1{})
+
+		cfg.Extract(new(S0).M) // ignored
+		cfg.Extract(new(S1).M) // ignored
+
+		// cfg.Extract(F0) // not seen
+		shape := cfg.Extract(F1)
+
+		if got := shape.Package.Scope().Names(); !reflect.DeepEqual(want, got) {
+			t.Errorf("Package.Names(): %#+v != %#+v", want, got)
 		}
 	})
 }
