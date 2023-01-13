@@ -2,10 +2,13 @@ package neo
 
 import (
 	"fmt"
+	"go/token"
 	"reflect"
 	"runtime"
 	"sort"
 	"strings"
+
+	"github.com/podhmo/reflect-shape/metadata"
 )
 
 type Config struct {
@@ -13,12 +16,17 @@ type Config struct {
 	IncludeArgNames bool
 
 	extractor *Extractor
+	lookup    *metadata.Lookup
 }
 
 func (c *Config) Extract(ob interface{}) *Shape {
+	if c.lookup == nil {
+		c.lookup = metadata.NewLookup(token.NewFileSet())
+	}
 	if c.extractor == nil {
 		c.extractor = &Extractor{
 			Config:   c,
+			Lookup:   c.lookup,
 			seen:     map[ID]*Shape{},
 			packages: map[string]*Package{},
 		}
@@ -28,6 +36,7 @@ func (c *Config) Extract(ob interface{}) *Shape {
 
 type Extractor struct {
 	Config *Config
+	Lookup *metadata.Lookup
 
 	seen     map[ID]*Shape
 	packages map[string]*Package
@@ -118,6 +127,84 @@ type Shape struct {
 
 func (s *Shape) Equal(another *Shape) bool {
 	return s.ID == another.ID
+}
+
+func (s *Shape) MustFunc() *Func {
+	if s.Kind != reflect.Func && s.ID.pc == 0 {
+		panic(fmt.Sprintf("shape %v is not func kind, %s", s, s.Kind))
+	}
+	lookup := s.e.Lookup
+	metadata, err := lookup.LookupFromFuncForPC(s.ID.pc)
+	if err != nil {
+		panic(err)
+	}
+	// TODO: fill all data
+	return &Func{Shape: s, metadata: metadata}
+}
+
+type Func struct {
+	Shape    *Shape
+	metadata *metadata.Func
+}
+
+func (f *Func) Name() string {
+	return f.Shape.Name
+}
+
+func (f *Func) IsMethod() bool {
+	return f.Shape.IsMethod
+}
+
+func (f *Func) Args() VarList {
+	typ := f.Shape.Type
+	r := make([]*Var, typ.NumIn())
+	args := f.metadata.Args()
+	for i := 0; i < typ.NumIn(); i++ {
+		shape := &Shape{
+			Type: typ.In(i),
+		}
+		r[i] = &Var{Name: args[i], Shape: shape}
+	}
+	return VarList(r)
+}
+
+func (f *Func) Returns() VarList {
+	typ := f.Shape.Type
+	r := make([]*Var, typ.NumOut())
+	args := f.metadata.Returns()
+	for i := 0; i < typ.NumOut(); i++ {
+		shape := &Shape{
+			Type: typ.Out(i),
+		}
+		r[i] = &Var{Name: args[i], Shape: shape}
+	}
+	return VarList(r)
+}
+
+func (f *Func) Doc() string {
+	return f.metadata.Doc()
+}
+func (f *Func) Recv() string {
+	return f.metadata.Recv
+}
+
+func (f *Func) String() string {
+	return fmt.Sprintf("&Func{Name: %q, Args: %v, Returns: %v}", f.Name(), f.metadata.Args(), f.metadata.Returns())
+}
+
+type VarList []*Var
+
+func (vl VarList) String() string {
+	parts := make([]string, len(vl))
+	for i, v := range vl {
+		parts[i] = fmt.Sprintf("%+v", v)
+	}
+	return fmt.Sprintf("%+v", parts)
+}
+
+type Var struct {
+	Name  string
+	Shape *Shape
 }
 
 type ID struct {
