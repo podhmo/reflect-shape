@@ -22,6 +22,9 @@ import (
 // ErrNotFound is the error metadata is not found.
 var ErrNotFound = fmt.Errorf("not found")
 
+// ErrNotSupported is the error metadata is not supported, yet
+var ErrNotSupported = fmt.Errorf("not supported")
+
 type Lookup struct {
 	Fset     *token.FileSet
 	accessor *unsaferuntime.Accessor
@@ -120,6 +123,10 @@ func (l *Lookup) LookupFromFuncForPC(pc uintptr) (*Func, error) {
 	if isMethod {
 		ob, ok := p.Types[recv]
 		if !ok {
+			// anonymous function? (TODO: correct check)
+			if _, ok := p.Functions[name]; !ok {
+				return nil, fmt.Errorf("lookup metadata of anonymous function %s, %w", rfunc.Name(), ErrNotSupported)
+			}
 			return nil, fmt.Errorf("lookup metadata of method %s, %w", rfunc.Name(), ErrNotFound)
 		}
 		result, ok := ob.Methods[name]
