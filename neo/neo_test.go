@@ -115,17 +115,24 @@ func FooWithoutArgNames(context.Context, string, *string) error {
 	return nil
 }
 
+// Foo's alternative that variadic arguments.
+func FooWithVariadicArgs(ctx context.Context, name string, nickname *string, args ...any) error {
+	return nil
+}
+
 func TestFunc(t *testing.T) {
 	cases := []struct {
-		fn       any
-		name     string
-		args     []string
-		returns  []string
-		isMethod bool
+		fn         any
+		name       string
+		args       []string
+		returns    []string
+		isMethod   bool
+		isVariadic bool
 	}{
 		{fn: Foo, args: []string{"ctx", "name", "nickname"}, returns: []string{""}},
 		{fn: FooWithRetNames, args: []string{"ctx", "name", "nickname"}, returns: []string{"err"}},
 		{fn: FooWithoutArgNames, args: []string{"", "", ""}, returns: []string{""}},
+		{fn: FooWithVariadicArgs, args: []string{"ctx", "name", "nickname", "args"}, returns: []string{""}, isVariadic: true},
 		{fn: new(S0).M, args: nil, returns: nil, isMethod: true},
 	}
 
@@ -161,6 +168,9 @@ func TestFunc(t *testing.T) {
 
 			if want, got := c.isMethod, fn.IsMethod(); want != got {
 				t.Errorf("Shape.Func().IsMethod(): want:%v != got:%v", want, got)
+			}
+			if want, got := c.isVariadic, fn.IsVariadic(); want != got {
+				t.Errorf("Shape.Func().IsVariadic(): want:%v != got:%v", want, got)
 			}
 		})
 	}

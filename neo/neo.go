@@ -154,15 +154,18 @@ func (f *Func) Name() string {
 func (f *Func) IsMethod() bool {
 	return f.Shape.IsMethod
 }
+func (f *Func) IsVariadic() bool {
+	return f.Shape.Type.IsVariadic()
+}
 
 func (f *Func) Args() VarList {
 	typ := f.Shape.Type
 	r := make([]*Var, typ.NumIn())
 	args := f.metadata.Args()
 	for i := 0; i < typ.NumIn(); i++ {
-		shape := &Shape{
-			Type: typ.In(i),
-		}
+		rt := typ.In(i)
+		rv := rzero(rt)
+		shape := f.Shape.e.extract(rt, rv)
 		r[i] = &Var{Name: args[i], Shape: shape}
 	}
 	return VarList(r)
