@@ -44,9 +44,12 @@ type Extractor struct {
 
 func (e *Extractor) Extract(ob interface{}) *Shape {
 	// TODO: only handling *T
-
 	rt := reflect.TypeOf(ob)
 	rv := reflect.ValueOf(ob)
+	return e.extract(rt, rv)
+}
+
+func (e *Extractor) extract(rt reflect.Type, rv reflect.Value) *Shape {
 	for rt.Kind() == reflect.Pointer {
 		rt = rt.Elem()
 		rv = rv.Elem()
@@ -176,9 +179,9 @@ func (f *Func) Returns() VarList {
 	r := make([]*Var, typ.NumOut())
 	args := f.metadata.Returns()
 	for i := 0; i < typ.NumOut(); i++ {
-		shape := &Shape{
-			Type: typ.Out(i),
-		}
+		rt := typ.Out(i)
+		rv := rzero(rt)
+		shape := f.Shape.e.extract(rt, rv)
 		r[i] = &Var{Name: args[i], Shape: shape}
 	}
 	return VarList(r)
@@ -249,4 +252,13 @@ func (s *Scope) names(withMethod bool) []string {
 	}
 	sort.Strings(r)
 	return r
+}
+
+var (
+	rnil = reflect.ValueOf(nil)
+)
+
+func rzero(rt reflect.Type) reflect.Value {
+	// TODO: fixme
+	return reflect.New(rt)
 }
