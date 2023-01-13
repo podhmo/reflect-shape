@@ -1,9 +1,12 @@
 package neo_test
 
 import (
+	"context"
+	"fmt"
 	"reflect"
 	"testing"
 
+	"github.com/google/go-cmp/cmp"
 	"github.com/podhmo/reflect-shape/neo"
 )
 
@@ -95,4 +98,81 @@ func TestPackageNames(t *testing.T) {
 			t.Errorf("Package.Names(): %#+v != %#+v", want, got)
 		}
 	})
+}
+
+// This is Foo.
+func Foo(ctx context.Context, name string, nickname *string) error {
+	return nil
+}
+
+// Foo's alternative that return variables are named.
+func FooWithRetNames(ctx context.Context, name string, nickname *string) (err error) {
+	return nil
+}
+
+// Foo's alternative that arguments are not named.
+func FooWithoutArgNames(context.Context, string, *string) error {
+	return nil
+}
+
+func TestFunc(t *testing.T) {
+	cases := []struct {
+		fn       any
+		name     string
+		args     []string
+		returns  []string
+		isMethod bool
+	}{
+		{fn: Foo, args: []string{"ctx", "name", "nickname"}, returns: []string{""}},
+		{fn: FooWithRetNames, args: []string{"ctx", "name", "nickname"}, returns: []string{"err"}},
+		{fn: FooWithoutArgNames, args: []string{"", "", ""}, returns: []string{""}},
+		{fn: new(S0).M, args: nil, returns: nil, isMethod: true},
+	}
+
+	cfg := &neo.Config{}
+	for i, c := range cases {
+		c := c
+
+		t.Run(fmt.Sprintf("case:%d", i), func(t *testing.T) {
+			fn := cfg.Extract(c.fn).MustFunc()
+			t.Logf("%s", fn)
+
+			{
+				var got []string
+				args := fn.Args()
+				for _, v := range args {
+					got = append(got, v.Name)
+				}
+				if want := c.args; !reflect.DeepEqual(want, got) {
+					t.Errorf("Shape.Func().Args(): want:%#+v != got:%#+v", want, got)
+				}
+			}
+
+			{
+				var got []string
+				args := fn.Returns()
+				for _, v := range args {
+					got = append(got, v.Name)
+				}
+				if want := c.returns; !reflect.DeepEqual(want, got) {
+					t.Errorf("Shape.Func().Returns(): want:%#+v != got:%#+v", want, got)
+				}
+			}
+
+			if want, got := c.isMethod, fn.IsMethod(); want != got {
+				t.Errorf("Shape.Func().IsMethod(): want:%v != got:%v", want, got)
+			}
+		})
+	}
+
+	t.Run("doc", func(t *testing.T) {
+		want := "This is Foo."
+		got := cfg.Extract(Foo).MustFunc().Doc()
+		if diff := cmp.Diff(want, got); diff != "" {
+			t.Errorf("Shape.Func().Doc(): -want, +got: \n%v", diff)
+		}
+	})
+
+	// PANIC (not supported)
+	// fmt.Println(cfg.Extract(func(fmt string, args ...any) {}).MustFunc())
 }
