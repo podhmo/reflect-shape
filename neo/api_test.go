@@ -193,7 +193,6 @@ type Person struct {
 }
 
 func TestStruct(t *testing.T) {
-
 	cases := []struct {
 		ob     any
 		name   string
@@ -233,6 +232,43 @@ func TestStruct(t *testing.T) {
 				}
 				if want := c.docs; !reflect.DeepEqual(want, got) {
 					t.Errorf("Shape.Struct().Fields(): docs, want:%#+v != got:%#+v", want, got)
+				}
+			}
+		})
+	}
+}
+
+func UseContext(ctx context.Context) {}
+
+func TestInterface(t *testing.T) {
+	cases := []struct {
+		ob      any
+		modify  func(*neo.Shape) *neo.Interface
+		name    string
+		methods []string
+	}{
+		{name: "Context", ob: UseContext, methods: []string{"Deadline", "Done", "Err", "Value"},
+			modify: func(s *neo.Shape) *neo.Interface { return s.MustFunc().Args()[0].Shape.MustInterface() }},
+	}
+
+	cfg := &neo.Config{IncludeGoTestFiles: true}
+	for i, c := range cases {
+		c := c
+		t.Run(fmt.Sprintf("case:%d", i), func(t *testing.T) {
+			iface := c.modify(cfg.Extract(c.ob))
+
+			if want, got := c.name, iface.Name(); want != got {
+				t.Errorf("Shape.Interface().Name():  want:%v != got:%v", want, got)
+			}
+
+			{
+				var got []string
+				fields := iface.Methods()
+				for _, v := range fields {
+					got = append(got, v.Name)
+				}
+				if want := c.methods; !reflect.DeepEqual(want, got) {
+					t.Errorf("Shape.Interface().Methods(): names, want:%#+v != got:%#+v", want, got)
 				}
 			}
 		})

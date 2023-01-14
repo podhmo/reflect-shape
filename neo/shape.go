@@ -46,6 +46,18 @@ func (s *Shape) MustStruct() *Struct {
 	return &Struct{Shape: s, metadata: metadata}
 }
 
+func (s *Shape) MustInterface() *Interface {
+	if s.Kind != reflect.Interface {
+		panic(fmt.Sprintf("shape %v is not Interface kind, %s", s, s.Kind))
+	}
+	lookup := s.e.Lookup
+	metadata, err := lookup.LookupFromTypeForReflectType(s.Type)
+	if err != nil {
+		panic(err)
+	}
+	return &Interface{Shape: s, metadata: metadata}
+}
+
 func (s *Shape) MustFunc() *Func {
 	if s.Kind != reflect.Func && s.ID.pc == 0 {
 		panic(fmt.Sprintf("shape %v is not func kind, %s", s, s.Kind))
@@ -94,7 +106,7 @@ type FieldList []*Field
 func (fl FieldList) String() string {
 	parts := make([]string, len(fl))
 	for i, v := range fl {
-		parts[i] = fmt.Sprintf("%+v", v)
+		parts[i] = fmt.Sprintf("%+v,", v)
 	}
 	return fmt.Sprintf("%+v", parts)
 }
@@ -109,9 +121,40 @@ type Field struct {
 func (f *Field) String() string {
 	doc := f.Doc
 	if len(doc) > 10 {
-		doc = doc + "..."
+		doc = doc[:10] + "..."
 	}
 	return fmt.Sprintf("&Field{Name: %-12q, type: %v, Doc:%q}", f.Name, f.Shape.Type, doc)
+}
+
+type Interface struct {
+	Shape    *Shape
+	metadata *metadata.Type
+}
+
+func (iface *Interface) Name() string {
+	return iface.Shape.Name
+}
+
+func (iface *Interface) Doc() string {
+	return iface.metadata.Raw.Doc
+}
+
+func (iface *Interface) Methods() VarList {
+	typ := iface.Shape.Type
+	comments := iface.metadata.FieldComments()
+	r := make([]*Var, typ.NumMethod())
+	for i := 0; i < typ.NumMethod(); i++ {
+		f := typ.Method(i)
+		rt := f.Type
+		rv := rzero(f.Type)
+		shape := iface.Shape.e.extract(rt, rv)
+		r[i] = &Var{Name: f.Name, Shape: shape, Doc: comments[f.Name]}
+	}
+	return r
+}
+
+func (iface *Interface) String() string {
+	return fmt.Sprintf("&Interface{Name: %-12q, Fields: %v}", iface.Name(), iface.metadata.Raw.FieldNames)
 }
 
 type Func struct {
@@ -172,7 +215,7 @@ type VarList []*Var
 func (vl VarList) String() string {
 	parts := make([]string, len(vl))
 	for i, v := range vl {
-		parts[i] = fmt.Sprintf("%+v", v)
+		parts[i] = fmt.Sprintf("%+v,", v)
 	}
 	return fmt.Sprintf("%+v", parts)
 }
@@ -180,6 +223,15 @@ func (vl VarList) String() string {
 type Var struct {
 	Name  string
 	Shape *Shape
+	Doc   string
+}
+
+func (v *Var) String() string {
+	doc := v.Doc
+	if len(doc) > 10 {
+		doc = doc[:10] + "..."
+	}
+	return fmt.Sprintf("&Var{Name: %-12q, type: %v, Doc: %v}", v.Name, v.Shape.Type, doc)
 }
 
 func rzero(rt reflect.Type) reflect.Value {
