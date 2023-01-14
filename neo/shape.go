@@ -30,6 +30,18 @@ func (s *Shape) Equal(another *Shape) bool {
 	return s.ID == another.ID
 }
 
+func (s *Shape) MustStruct() *Struct {
+	if s.Kind != reflect.Struct {
+		panic(fmt.Sprintf("shape %v is not Struct kind, %s", s, s.Kind))
+	}
+	lookup := s.e.Lookup
+	metadata, err := lookup.LookupFromTypeForReflectType(s.Type)
+	if err != nil {
+		panic(err)
+	}
+	return &Struct{Shape: s, metadata: metadata}
+}
+
 func (s *Shape) MustFunc() *Func {
 	if s.Kind != reflect.Func && s.ID.pc == 0 {
 		panic(fmt.Sprintf("shape %v is not func kind, %s", s, s.Kind))
@@ -39,8 +51,63 @@ func (s *Shape) MustFunc() *Func {
 	if err != nil {
 		panic(err)
 	}
-	// TODO: fill all data
 	return &Func{Shape: s, metadata: metadata}
+}
+
+type Struct struct {
+	Shape    *Shape
+	metadata *metadata.Type
+}
+
+func (s *Struct) Name() string {
+	return s.Shape.Name
+}
+
+func (s *Struct) Doc() string {
+	return s.metadata.Raw.Doc
+}
+
+func (s *Struct) Fields() FieldList {
+	typ := s.Shape.Type
+	comments := s.metadata.FieldComments()
+	r := make([]*Field, typ.NumField())
+	for i := 0; i < typ.NumField(); i++ {
+		f := typ.Field(i)
+		rt := f.Type
+		rv := rzero(f.Type)
+		shape := s.Shape.e.extract(rt, rv)
+		r[i] = &Field{Name: f.Name, Shape: shape, Field: f, Doc: comments[f.Name]}
+	}
+	return FieldList(r)
+}
+
+func (s *Struct) String() string {
+	return fmt.Sprintf("&Struct{Name: %-12q, Fields: %v}", s.Name(), s.metadata.Raw.FieldNames)
+}
+
+type FieldList []*Field
+
+func (fl FieldList) String() string {
+	parts := make([]string, len(fl))
+	for i, v := range fl {
+		parts[i] = fmt.Sprintf("%+v", v)
+	}
+	return fmt.Sprintf("%+v", parts)
+}
+
+type Field struct {
+	Name  string
+	Shape *Shape
+	Field reflect.StructField
+	Doc   string
+}
+
+func (f *Field) String() string {
+	doc := f.Doc
+	if len(doc) > 10 {
+		doc = doc + "..."
+	}
+	return fmt.Sprintf("&Field{Name: %-12q, type: %v, Doc:%q}", f.Name, f.Shape.Type, doc)
 }
 
 type Func struct {
@@ -93,7 +160,7 @@ func (f *Func) Recv() string {
 }
 
 func (f *Func) String() string {
-	return fmt.Sprintf("&Func{Name: %q, Args: %v, Returns: %v}", f.Name(), f.metadata.Args(), f.metadata.Returns())
+	return fmt.Sprintf("&Func{Name: %-12q, Args: %v, Returns: %v}", f.Name(), f.metadata.Args(), f.metadata.Returns())
 }
 
 type VarList []*Var
