@@ -40,6 +40,10 @@ func (s *Shape) MustStruct() *Struct {
 		panic(fmt.Sprintf("shape %v is not Struct kind, %s", s, s.Kind))
 	}
 	lookup := s.e.Lookup
+	if lookup == nil {
+		return &Struct{Shape: s}
+	}
+
 	metadata, err := lookup.LookupFromTypeForReflectType(s.Type)
 	if err != nil {
 		panic(err)
@@ -52,6 +56,10 @@ func (s *Shape) MustInterface() *Interface {
 		panic(fmt.Sprintf("shape %v is not Interface kind, %s", s, s.Kind))
 	}
 	lookup := s.e.Lookup
+	if lookup == nil {
+		return &Interface{Shape: s}
+	}
+
 	metadata, err := lookup.LookupFromTypeForReflectType(s.Type)
 	if err != nil {
 		panic(err)
@@ -64,6 +72,10 @@ func (s *Shape) MustFunc() *Func {
 		panic(fmt.Sprintf("shape %v is not func kind, %s", s, s.Kind))
 	}
 	lookup := s.e.Lookup
+	if lookup == nil {
+		return &Func{Shape: s}
+	}
+
 	metadata, err := lookup.LookupFromFuncForPC(s.ID.pc)
 	if err != nil {
 		panic(err)
@@ -73,8 +85,11 @@ func (s *Shape) MustFunc() *Func {
 
 func (s *Shape) MustType() *Type {
 	// TODO: check
-
 	lookup := s.e.Lookup
+	if lookup == nil {
+		return &Type{Shape: s}
+	}
+
 	metadata, err := lookup.LookupFromTypeForReflectType(s.Type)
 	if err != nil {
 		panic(err)
@@ -92,6 +107,9 @@ func (t *Type) Name() string {
 }
 
 func (t *Type) Doc() string {
+	if t.metadata == nil {
+		return ""
+	}
 	return t.metadata.Doc()
 }
 
@@ -114,12 +132,21 @@ func (s *Struct) Name() string {
 }
 
 func (s *Struct) Doc() string {
+	if s.metadata == nil {
+		return ""
+	}
 	return s.metadata.Raw.Doc
 }
 
 func (s *Struct) Fields() FieldList {
 	typ := s.Shape.Type
-	comments := s.metadata.FieldComments()
+	var comments map[string]string
+	if s.metadata != nil {
+		comments = s.metadata.FieldComments()
+	} else {
+		comments = map[string]string{}
+	}
+
 	r := make([]*Field, typ.NumField())
 	for i := 0; i < typ.NumField(); i++ {
 		f := typ.Field(i)
@@ -137,7 +164,13 @@ func (s *Struct) String() string {
 	if len(doc) > tsize {
 		doc = doc[:tsize] + "..."
 	}
-	return fmt.Sprintf("&Struct{Name: %q, Fields: %v, Doc: %q}", s.Name(), s.metadata.Raw.FieldNames, doc)
+
+	fields := s.Fields()
+	fieldNames := make([]string, len(fields))
+	for i, f := range fields {
+		fieldNames[i] = f.Name
+	}
+	return fmt.Sprintf("&Struct{Name: %q, Fields: %v, Doc: %q}", s.Name(), fieldNames, doc)
 }
 
 type FieldList []*Field
@@ -175,12 +208,21 @@ func (iface *Interface) Name() string {
 }
 
 func (iface *Interface) Doc() string {
+	if iface.metadata == nil {
+		return ""
+	}
 	return iface.metadata.Raw.Doc
 }
 
 func (iface *Interface) Methods() VarList {
 	typ := iface.Shape.Type
-	comments := iface.metadata.FieldComments()
+	var comments map[string]string
+	if iface.metadata != nil {
+		comments = iface.metadata.FieldComments()
+	} else {
+		comments = map[string]string{}
+	}
+
 	r := make([]*Var, typ.NumMethod())
 	for i := 0; i < typ.NumMethod(); i++ {
 		f := typ.Method(i)
@@ -198,7 +240,13 @@ func (iface *Interface) String() string {
 	if len(doc) > tsize {
 		doc = doc[:tsize] + "..."
 	}
-	return fmt.Sprintf("&Interface{Name: %q, Methods: %v, Doc: %q}", iface.Name(), iface.metadata.Raw.FieldNames, doc)
+
+	methods := iface.Methods()
+	methodNames := make([]string, len(methods))
+	for i, m := range methods {
+		methodNames[i] = m.Name
+	}
+	return fmt.Sprintf("&Interface{Name: %q, Methods: %v, Doc: %q}", iface.Name(), methodNames, doc)
 }
 
 type Func struct {
@@ -219,9 +267,14 @@ func (f *Func) IsVariadic() bool {
 
 func (f *Func) Args() VarList {
 	typ := f.Shape.Type
-	r := make([]*Var, typ.NumIn())
-	args := f.metadata.Args()
+	var args []string
+	if f.metadata != nil {
+		args = f.metadata.Args()
+	} else {
+		args = make([]string, typ.NumIn())
+	}
 
+	r := make([]*Var, typ.NumIn())
 	fillArgNames := f.Shape.e.Config.FillArgNames
 	for i := 0; i < typ.NumIn(); i++ {
 		rt := typ.In(i)
@@ -243,11 +296,16 @@ func (f *Func) Args() VarList {
 
 func (f *Func) Returns() VarList {
 	typ := f.Shape.Type
-	r := make([]*Var, typ.NumOut())
-	args := f.metadata.Returns()
+	var args []string
+	if f.metadata != nil {
+		args = f.metadata.Returns()
+	} else {
+		args = make([]string, typ.NumOut())
+	}
 
 	fillArgNames := f.Shape.e.Config.FillArgNames
 	errUsed := false
+	r := make([]*Var, typ.NumOut())
 	for i := 0; i < typ.NumOut(); i++ {
 		rt := typ.Out(i)
 		rv := rzero(rt)
@@ -270,9 +328,18 @@ func (f *Func) Returns() VarList {
 }
 
 func (f *Func) Doc() string {
+	if f.metadata == nil {
+		return ""
+	}
 	return f.metadata.Doc()
 }
 func (f *Func) Recv() string {
+	if f.metadata == nil {
+		if f.Shape.IsMethod {
+			return "i"
+		}
+		return ""
+	}
 	return f.metadata.Recv
 }
 
@@ -282,7 +349,19 @@ func (f *Func) String() string {
 	if len(doc) > tsize {
 		doc = doc[:tsize] + "..."
 	}
-	return fmt.Sprintf("&Func{Name: %q, Args: %v, Returns: %v, Doc: %q}", f.Name(), f.metadata.Args(), f.metadata.Returns(), doc)
+
+	args := f.Args()
+	argNames := make([]string, len(args))
+	for i, m := range args {
+		argNames[i] = m.Name
+	}
+
+	returns := f.Returns()
+	returnNames := make([]string, len(returns))
+	for i, m := range returns {
+		returnNames[i] = m.Name
+	}
+	return fmt.Sprintf("&Func{Name: %q, Args: %v, Returns: %v, Doc: %q}", f.Name(), argNames, returnNames, doc)
 }
 
 type VarList []*Var
