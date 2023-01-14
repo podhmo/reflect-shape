@@ -18,6 +18,8 @@ func F1()         {}
 func (s0 S0) M()  {}
 func (s1 *S1) M() {}
 
+var cfg = &neo.Config{IncludeGoTestFiles: true}
+
 func TestIdentity(t *testing.T) {
 	type testcase struct {
 		msg string
@@ -54,7 +56,6 @@ func TestIdentity(t *testing.T) {
 			{msg: "function-and-method", x: F0, y: new(S0).M},
 		}
 
-		cfg := &neo.Config{}
 		for _, c := range cases {
 			t.Run(c.msg, func(t *testing.T) {
 				x := cfg.Extract(c.x)
@@ -135,7 +136,6 @@ func TestFunc(t *testing.T) {
 		{fn: new(S0).M, args: nil, returns: nil, isMethod: true},
 	}
 
-	cfg := &neo.Config{}
 	for i, c := range cases {
 		c := c
 
@@ -204,7 +204,6 @@ func TestStruct(t *testing.T) {
 		{name: "Person", ob: &Person{}, fields: []string{"Name", "Father", "Children"}},
 	}
 
-	cfg := &neo.Config{IncludeGoTestFiles: true}
 	for i, c := range cases {
 		c := c
 		t.Run(fmt.Sprintf("case%d", i), func(t *testing.T) {
@@ -253,7 +252,6 @@ func TestInterface(t *testing.T) {
 			modify: func(s *neo.Shape) *neo.Interface { return s.MustFunc().Args()[0].Shape.MustInterface() }},
 	}
 
-	cfg := &neo.Config{IncludeGoTestFiles: true}
 	for i, c := range cases {
 		c := c
 		t.Run(fmt.Sprintf("case%d", i), func(t *testing.T) {
@@ -291,7 +289,6 @@ func TestType(t *testing.T) {
 		{input: &Person{}, name: "Person", doc: "Person object"},
 	}
 
-	cfg := &neo.Config{IncludeGoTestFiles: true}
 	for i, c := range cases {
 		c := c
 		t.Run(fmt.Sprintf("case%d", i), func(t *testing.T) {
