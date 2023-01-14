@@ -92,7 +92,7 @@ func (s *Struct) Fields() FieldList {
 		rt := f.Type
 		rv := rzero(f.Type)
 		shape := s.Shape.e.extract(rt, rv)
-		r[i] = &Field{Name: f.Name, Shape: shape, Field: f, Doc: comments[f.Name]}
+		r[i] = &Field{StructField: f, Shape: shape, Doc: comments[f.Name]}
 	}
 	return FieldList(r)
 }
@@ -112,9 +112,8 @@ func (fl FieldList) String() string {
 }
 
 type Field struct {
-	Name  string
+	reflect.StructField
 	Shape *Shape
-	Field reflect.StructField
 	Doc   string
 }
 
