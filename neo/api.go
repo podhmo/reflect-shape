@@ -11,11 +11,21 @@ type Config struct {
 	IncludeArgNames    bool
 	IncludeGoTestFiles bool
 
+	DocTruncationSize int
+
 	extractor *Extractor
 	lookup    *metadata.Lookup
 }
 
+var (
+	DocTruncationSize = 10
+)
+
 func (c *Config) Extract(ob interface{}) *Shape {
+	if c.DocTruncationSize == 0 {
+		c.DocTruncationSize = DocTruncationSize
+	}
+
 	if c.lookup == nil {
 		c.lookup = metadata.NewLookup(token.NewFileSet())
 		c.lookup.IncludeGoTestFiles = c.IncludeGoTestFiles

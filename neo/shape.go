@@ -31,7 +31,7 @@ func (s *Shape) Equal(another *Shape) bool {
 }
 
 func (s *Shape) String() string {
-	return fmt.Sprintf("&Shape#%d{Name: %-12q, Kind: %v, Type: %v, Package: %v}", s.Number, s.Name, s.Kind, s.Type, s.Package.Name)
+	return fmt.Sprintf("&Shape#%d{Name: %q, Kind: %v, Type: %v, Package: %v}", s.Number, s.Name, s.Kind, s.Type, s.Package.Name)
 }
 
 func (s *Shape) MustStruct() *Struct {
@@ -70,6 +70,39 @@ func (s *Shape) MustFunc() *Func {
 	return &Func{Shape: s, metadata: metadata}
 }
 
+func (s *Shape) MustType() *Type {
+	// TODO: check
+
+	lookup := s.e.Lookup
+	metadata, err := lookup.LookupFromTypeForReflectType(s.Type)
+	if err != nil {
+		panic(err)
+	}
+	return &Type{Shape: s, metadata: metadata}
+}
+
+type Type struct {
+	Shape    *Shape
+	metadata *metadata.Type
+}
+
+func (t *Type) Name() string {
+	return t.Shape.Name
+}
+
+func (t *Type) Doc() string {
+	return t.metadata.Doc()
+}
+
+func (t *Type) String() string {
+	doc := t.Doc()
+	tsize := t.Shape.e.Config.DocTruncationSize
+	if len(doc) > tsize {
+		doc = doc[:tsize] + "..."
+	}
+	return fmt.Sprintf("&Type{Name: %q, kind: %s, type: %v, Doc: %q}", t.Name(), t.Shape.Kind, t.Shape.Type, doc)
+}
+
 type Struct struct {
 	Shape    *Shape
 	metadata *metadata.Type
@@ -98,7 +131,12 @@ func (s *Struct) Fields() FieldList {
 }
 
 func (s *Struct) String() string {
-	return fmt.Sprintf("&Struct{Name: %-12q, Fields: %v}", s.Name(), s.metadata.Raw.FieldNames)
+	doc := s.Doc()
+	tsize := s.Shape.e.Config.DocTruncationSize
+	if len(doc) > tsize {
+		doc = doc[:tsize] + "..."
+	}
+	return fmt.Sprintf("&Struct{Name: %q, Fields: %v, Doc: %q}", s.Name(), s.metadata.Raw.FieldNames, doc)
 }
 
 type FieldList []*Field
@@ -119,10 +157,11 @@ type Field struct {
 
 func (f *Field) String() string {
 	doc := f.Doc
-	if len(doc) > 10 {
-		doc = doc[:10] + "..."
+	tsize := f.Shape.e.Config.DocTruncationSize
+	if len(doc) > tsize {
+		doc = doc[:tsize] + "..."
 	}
-	return fmt.Sprintf("&Field{Name: %-12q, type: %v, Doc:%q}", f.Name, f.Shape.Type, doc)
+	return fmt.Sprintf("&Field{Name: %q, type: %v, Doc:%q}", f.Name, f.Shape.Type, doc)
 }
 
 type Interface struct {
@@ -153,7 +192,12 @@ func (iface *Interface) Methods() VarList {
 }
 
 func (iface *Interface) String() string {
-	return fmt.Sprintf("&Interface{Name: %-12q, Fields: %v}", iface.Name(), iface.metadata.Raw.FieldNames)
+	doc := iface.Doc()
+	tsize := iface.Shape.e.Config.DocTruncationSize
+	if len(doc) > tsize {
+		doc = doc[:tsize] + "..."
+	}
+	return fmt.Sprintf("&Interface{Name: %q, Methods: %v, Doc: %q}", iface.Name(), iface.metadata.Raw.FieldNames, doc)
 }
 
 type Func struct {
@@ -206,7 +250,12 @@ func (f *Func) Recv() string {
 }
 
 func (f *Func) String() string {
-	return fmt.Sprintf("&Func{Name: %-12q, Args: %v, Returns: %v}", f.Name(), f.metadata.Args(), f.metadata.Returns())
+	doc := f.Doc()
+	tsize := f.Shape.e.Config.DocTruncationSize
+	if len(doc) > tsize {
+		doc = doc[:tsize] + "..."
+	}
+	return fmt.Sprintf("&Func{Name: %q, Args: %v, Returns: %v, Doc: %q}", f.Name(), f.metadata.Args(), f.metadata.Returns(), doc)
 }
 
 type VarList []*Var
@@ -227,10 +276,11 @@ type Var struct {
 
 func (v *Var) String() string {
 	doc := v.Doc
-	if len(doc) > 10 {
-		doc = doc[:10] + "..."
+	tsize := v.Shape.e.Config.DocTruncationSize
+	if len(doc) > tsize {
+		doc = doc[:tsize] + "..."
 	}
-	return fmt.Sprintf("&Var{Name: %-12q, type: %v, Doc: %v}", v.Name, v.Shape.Type, doc)
+	return fmt.Sprintf("&Var{Name: %q, type: %v, Doc: %q}", v.Name, v.Shape.Type, doc)
 }
 
 func rzero(rt reflect.Type) reflect.Value {
