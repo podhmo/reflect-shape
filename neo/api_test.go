@@ -123,22 +123,27 @@ func FooWithVariadicArgs(ctx context.Context, name string, nickname *string, arg
 
 func TestFunc(t *testing.T) {
 	cases := []struct {
-		fn         any
-		args       []string
-		returns    []string
-		isMethod   bool
-		isVariadic bool
+		fn           any
+		args         []string
+		returns      []string
+		isMethod     bool
+		isVariadic   bool
+		fillArgNames bool
 	}{
 		{fn: Foo, args: []string{"ctx", "name", "nickname"}, returns: []string{""}},
 		{fn: FooWithRetNames, args: []string{"ctx", "name", "nickname"}, returns: []string{"err"}},
 		{fn: FooWithoutArgNames, args: []string{"", "", ""}, returns: []string{""}},
+		// isVariadic
 		{fn: FooWithVariadicArgs, args: []string{"ctx", "name", "nickname", "args"}, returns: []string{""}, isVariadic: true},
+		// isMethod
 		{fn: new(S0).M, args: nil, returns: nil, isMethod: true},
+		// fillArgNames
+		{fn: FooWithoutArgNames, args: []string{"ctx", "arg1", "arg2"}, returns: []string{"err"}, fillArgNames: true},
 	}
 
 	for i, c := range cases {
 		c := c
-
+		cfg := &neo.Config{IncludeGoTestFiles: true, FillArgNames: c.fillArgNames, FillReturnNames: c.fillArgNames}
 		t.Run(fmt.Sprintf("case%d", i), func(t *testing.T) {
 			fn := cfg.Extract(c.fn).MustFunc()
 			t.Logf("%s", fn)
@@ -149,8 +154,11 @@ func TestFunc(t *testing.T) {
 				for _, v := range args {
 					got = append(got, v.Name)
 				}
-				if want := c.args; !reflect.DeepEqual(want, got) {
-					t.Errorf("Shape.Func().Args(): want:%#+v != got:%#+v", want, got)
+
+				want := c.args
+				type ref struct{ XS []string }
+				if diff := cmp.Diff(ref{want}, ref{got}); diff != "" {
+					t.Errorf("Shape.Func().Args(): -want, +got: \n%v", diff)
 				}
 			}
 
@@ -160,8 +168,11 @@ func TestFunc(t *testing.T) {
 				for _, v := range args {
 					got = append(got, v.Name)
 				}
-				if want := c.returns; !reflect.DeepEqual(want, got) {
-					t.Errorf("Shape.Func().Returns(): want:%#+v != got:%#+v", want, got)
+
+				want := c.returns
+				type ref struct{ XS []string }
+				if diff := cmp.Diff(ref{want}, ref{got}); diff != "" {
+					t.Errorf("Shape.Func().Returns(): -want, +got: \n%v", diff)
 				}
 			}
 
