@@ -123,7 +123,6 @@ func FooWithVariadicArgs(ctx context.Context, name string, nickname *string, arg
 func TestFunc(t *testing.T) {
 	cases := []struct {
 		fn         any
-		name       string
 		args       []string
 		returns    []string
 		isMethod   bool
@@ -185,4 +184,57 @@ func TestFunc(t *testing.T) {
 
 	// PANIC (not supported)
 	// fmt.Println(cfg.Extract(func(fmt string, args ...any) {}).MustFunc())
+}
+
+type Person struct {
+	Name     string // name of person
+	Father   *Person
+	Children []*Person
+}
+
+func TestStruct(t *testing.T) {
+
+	cases := []struct {
+		ob     any
+		name   string
+		fields []string
+		docs   []string
+	}{
+		{name: "Person", ob: Person{}, fields: []string{"Name", "Father", "Children"}, docs: []string{"name of person", "", ""}},
+		{name: "Person", ob: &Person{}, fields: []string{"Name", "Father", "Children"}},
+	}
+
+	cfg := &neo.Config{IncludeGoTestFiles: true}
+	for i, c := range cases {
+		c := c
+		t.Run(fmt.Sprintf("case:%d", i), func(t *testing.T) {
+			s := cfg.Extract(c.ob).MustStruct()
+
+			if want, got := c.name, s.Name(); want != got {
+				t.Errorf("Shape.Struct().Name():  want:%v != got:%v", want, got)
+			}
+
+			{
+				var got []string
+				fields := s.Fields()
+				for _, v := range fields {
+					got = append(got, v.Name)
+				}
+				if want := c.fields; !reflect.DeepEqual(want, got) {
+					t.Errorf("Shape.Struct().Fields(): names, want:%#+v != got:%#+v", want, got)
+				}
+			}
+
+			if c.docs != nil {
+				var got []string
+				fields := s.Fields()
+				for _, v := range fields {
+					got = append(got, v.Doc)
+				}
+				if want := c.docs; !reflect.DeepEqual(want, got) {
+					t.Errorf("Shape.Struct().Fields(): docs, want:%#+v != got:%#+v", want, got)
+				}
+			}
+		})
+	}
 }
