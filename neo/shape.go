@@ -30,6 +30,10 @@ func (s *Shape) Equal(another *Shape) bool {
 	return s.ID == another.ID
 }
 
+func (s *Shape) String() string {
+	return fmt.Sprintf("&Shape#%d{Name: %-12q, Kind: %v, Type: %v, Package: %v}", s.Number, s.Name, s.Kind, s.Type, s.Package.Name)
+}
+
 func (s *Shape) MustStruct() *Struct {
 	if s.Kind != reflect.Struct {
 		panic(fmt.Sprintf("shape %v is not Struct kind, %s", s, s.Kind))
