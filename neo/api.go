@@ -7,11 +7,11 @@ import (
 )
 
 type Config struct {
-	IncludeComments    bool
+	SkipComments       bool // if true, skip extracting argNames and comments
+	FillArgNames       bool // func(context.Context, int) -> func(ctx context.Context, arg0 int)
+	FillReturnNames    bool // func() (int, error) -> func() (ret0, err)
 	IncludeGoTestFiles bool
 
-	FillArgNames      bool // func(context.Context, int) -> func(ctx context.Context, arg0 int)
-	FillReturnNames   bool // func() (int, error) -> func() (ret0, err)
 	DocTruncationSize int
 
 	extractor *Extractor
@@ -27,7 +27,7 @@ func (c *Config) Extract(ob interface{}) *Shape {
 		c.DocTruncationSize = DocTruncationSize
 	}
 
-	if c.lookup == nil {
+	if c.lookup == nil && !c.SkipComments {
 		c.lookup = metadata.NewLookup(token.NewFileSet())
 		c.lookup.IncludeGoTestFiles = c.IncludeGoTestFiles
 		// c.lookup.IncludeUnexported = c.Inc
