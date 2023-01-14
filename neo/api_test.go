@@ -139,7 +139,7 @@ func TestFunc(t *testing.T) {
 	for i, c := range cases {
 		c := c
 
-		t.Run(fmt.Sprintf("case:%d", i), func(t *testing.T) {
+		t.Run(fmt.Sprintf("case%d", i), func(t *testing.T) {
 			fn := cfg.Extract(c.fn).MustFunc()
 			t.Logf("%s", fn)
 
@@ -186,6 +186,7 @@ func TestFunc(t *testing.T) {
 	// fmt.Println(cfg.Extract(func(fmt string, args ...any) {}).MustFunc())
 }
 
+// Person object
 type Person struct {
 	Name     string // name of person
 	Father   *Person
@@ -206,8 +207,9 @@ func TestStruct(t *testing.T) {
 	cfg := &neo.Config{IncludeGoTestFiles: true}
 	for i, c := range cases {
 		c := c
-		t.Run(fmt.Sprintf("case:%d", i), func(t *testing.T) {
+		t.Run(fmt.Sprintf("case%d", i), func(t *testing.T) {
 			s := cfg.Extract(c.ob).MustStruct()
+			t.Logf("%s", s)
 
 			if want, got := c.name, s.Name(); want != got {
 				t.Errorf("Shape.Struct().Name():  want:%v != got:%v", want, got)
@@ -242,20 +244,21 @@ func UseContext(ctx context.Context) {}
 
 func TestInterface(t *testing.T) {
 	cases := []struct {
-		ob      any
+		input   any
 		modify  func(*neo.Shape) *neo.Interface
 		name    string
 		methods []string
 	}{
-		{name: "Context", ob: UseContext, methods: []string{"Deadline", "Done", "Err", "Value"},
+		{name: "Context", input: UseContext, methods: []string{"Deadline", "Done", "Err", "Value"},
 			modify: func(s *neo.Shape) *neo.Interface { return s.MustFunc().Args()[0].Shape.MustInterface() }},
 	}
 
 	cfg := &neo.Config{IncludeGoTestFiles: true}
 	for i, c := range cases {
 		c := c
-		t.Run(fmt.Sprintf("case:%d", i), func(t *testing.T) {
-			iface := c.modify(cfg.Extract(c.ob))
+		t.Run(fmt.Sprintf("case%d", i), func(t *testing.T) {
+			iface := c.modify(cfg.Extract(c.input))
+			t.Logf("%s", iface)
 
 			if want, got := c.name, iface.Name(); want != got {
 				t.Errorf("Shape.Interface().Name():  want:%v != got:%v", want, got)
@@ -270,6 +273,36 @@ func TestInterface(t *testing.T) {
 				if want := c.methods; !reflect.DeepEqual(want, got) {
 					t.Errorf("Shape.Interface().Methods(): names, want:%#+v != got:%#+v", want, got)
 				}
+			}
+		})
+	}
+}
+
+// Ordering is desc or asc
+type Ordering string
+
+func TestType(t *testing.T) {
+	cases := []struct {
+		input any
+		name  string
+		doc   string
+	}{
+		{input: Ordering("desc"), name: "Ordering", doc: "Ordering is desc or asc"},
+		{input: &Person{}, name: "Person", doc: "Person object"},
+	}
+
+	cfg := &neo.Config{IncludeGoTestFiles: true}
+	for i, c := range cases {
+		c := c
+		t.Run(fmt.Sprintf("case%d", i), func(t *testing.T) {
+			got := cfg.Extract(c.input).MustType()
+			t.Logf("%s", got)
+
+			if want, got := c.name, got.Name(); want != got {
+				t.Errorf("Shape.Type().Name():  want:%v != got:%v", want, got)
+			}
+			if want, got := c.doc, got.Doc(); want != got {
+				t.Errorf("Shape.Type().Doc():  want:%v != got:%v", want, got)
 			}
 		})
 	}
