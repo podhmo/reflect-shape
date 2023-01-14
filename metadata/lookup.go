@@ -123,41 +123,41 @@ func (l *Lookup) LookupFromFuncForPC(pc uintptr) (*Func, error) {
 
 	pkgpath := rfuncPkgpath(rfunc)
 	p0, ok := l.cache[pkgpath]
-	if ok && p0.fullset {
-		if p0.err != nil {
-			return nil, p0.err
-		}
+	if ok {
+		if p0.fullset {
+			if p0.err != nil {
+				return nil, p0.err
+			}
 
-		if isMethod {
-			ob, ok := p0.Types[recv]
-			if !ok {
-				// anonymous function? (TODO: correct check)
-				if _, ok := p0.Functions[name]; !ok {
-					return nil, fmt.Errorf("lookup metadata of anonymous function %s, %w", rfunc.Name(), ErrNotSupported)
+			if isMethod {
+				ob, ok := p0.Types[recv]
+				if !ok {
+					// anonymous function? (TODO: correct check)
+					if _, ok := p0.Functions[name]; !ok {
+						return nil, fmt.Errorf("lookup metadata of anonymous function %s, %w", rfunc.Name(), ErrNotSupported)
+					}
+					return nil, fmt.Errorf("lookup metadata of method %s, %w", rfunc.Name(), ErrNotFound)
 				}
-				return nil, fmt.Errorf("lookup metadata of method %s, %w", rfunc.Name(), ErrNotFound)
+				result, ok := ob.Methods[name]
+				if !ok {
+					return nil, fmt.Errorf("lookup metadata of method %s, %w", rfunc.Name(), ErrNotFound)
+				}
+				if DEBUG {
+					log.Println("\tOK func cache (full)", rfunc.Name())
+				}
+				return &Func{pc: pc, Raw: result, Recv: recv}, nil
+			} else {
+				result, ok := p0.Functions[name]
+				if !ok {
+					return nil, fmt.Errorf("lookup metadata of %s is failed %w", rfunc.Name(), ErrNotFound)
+				}
+				if DEBUG {
+					log.Println("\tOK func cache (full)", rfunc.Name())
+				}
+				return &Func{Raw: result}, nil
 			}
-			result, ok := ob.Methods[name]
-			if !ok {
-				return nil, fmt.Errorf("lookup metadata of method %s, %w", rfunc.Name(), ErrNotFound)
-			}
-			if DEBUG {
-				log.Println("\tOK func cache (full)", rfunc.Name())
-			}
-			return &Func{pc: pc, Raw: result, Recv: recv}, nil
-		} else {
-			result, ok := p0.Functions[name]
-			if !ok {
-				return nil, fmt.Errorf("lookup metadata of %s is failed %w", rfunc.Name(), ErrNotFound)
-			}
-			if DEBUG {
-				log.Println("\tOK func cache (full)", rfunc.Name())
-			}
-			return &Func{Raw: result}, nil
 		}
-	}
 
-	if ok && p0 != nil {
 		for _, visitedFile := range p0.FileNames {
 			if visitedFile == filename {
 				f, ok := p0.Files[filename]
@@ -178,7 +178,7 @@ func (l *Lookup) LookupFromFuncForPC(pc uintptr) (*Func, error) {
 
 	f, err := parser.ParseFile(l.Fset, filename, nil, parser.ParseComments)
 	if f == nil {
-		l.cache[pkgpath] = &packageRef{fullset: false, err: err}
+		l.cache[pkgpath] = &packageRef{fullset: false, err: err} // error cache
 		return nil, err
 	}
 
