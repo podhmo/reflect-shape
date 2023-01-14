@@ -8,9 +8,10 @@ import (
 
 type Config struct {
 	IncludeComments    bool
-	IncludeArgNames    bool
 	IncludeGoTestFiles bool
 
+	FillArgNames      bool // func(context.Context, int) -> func(ctx context.Context, arg0 int)
+	FillReturnNames   bool // func() (int, error) -> func() (ret0, err)
 	DocTruncationSize int
 
 	extractor *Extractor

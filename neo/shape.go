@@ -1,6 +1,7 @@
 package neo
 
 import (
+	"context"
 	"fmt"
 	"reflect"
 
@@ -220,11 +221,22 @@ func (f *Func) Args() VarList {
 	typ := f.Shape.Type
 	r := make([]*Var, typ.NumIn())
 	args := f.metadata.Args()
+
+	fillArgNames := f.Shape.e.Config.FillArgNames
 	for i := 0; i < typ.NumIn(); i++ {
 		rt := typ.In(i)
 		rv := rzero(rt)
 		shape := f.Shape.e.extract(rt, rv)
-		r[i] = &Var{Name: args[i], Shape: shape}
+		name := args[i]
+		if name == "" && fillArgNames {
+			switch {
+			case rcontextType == rt:
+				name = "ctx"
+			default:
+				name = fmt.Sprintf("arg%d", i)
+			}
+		}
+		r[i] = &Var{Name: name, Shape: shape}
 	}
 	return VarList(r)
 }
@@ -233,11 +245,26 @@ func (f *Func) Returns() VarList {
 	typ := f.Shape.Type
 	r := make([]*Var, typ.NumOut())
 	args := f.metadata.Returns()
+
+	fillArgNames := f.Shape.e.Config.FillArgNames
+	errUsed := false
 	for i := 0; i < typ.NumOut(); i++ {
 		rt := typ.Out(i)
 		rv := rzero(rt)
 		shape := f.Shape.e.extract(rt, rv)
-		r[i] = &Var{Name: args[i], Shape: shape}
+		name := args[i]
+		if name == "" && fillArgNames {
+			switch {
+			case rerrType == rt && errUsed:
+				name = fmt.Sprintf("err%d", i)
+			case rerrType == rt:
+				name = "err"
+				errUsed = true
+			default:
+				name = fmt.Sprintf("ret%d", i)
+			}
+		}
+		r[i] = &Var{Name: name, Shape: shape}
 	}
 	return VarList(r)
 }
@@ -287,3 +314,8 @@ func rzero(rt reflect.Type) reflect.Value {
 	// TODO: fixme
 	return reflect.New(rt)
 }
+
+var (
+	rcontextType = reflect.TypeOf(func(context.Context) {}).In(0)
+	rerrType     = reflect.TypeOf(func(error) {}).In(0)
+)
