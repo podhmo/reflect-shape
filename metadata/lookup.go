@@ -199,7 +199,11 @@ func (l *Lookup) LookupFromTypeForReflectType(rt reflect.Type) (*Type, error) {
 		},
 	}
 
-	pkgs, err := packages.Load(cfg, pkgpath)
+	patterns := []string{pkgpath}
+	if strings.HasSuffix(pkgpath, "_test") {
+		patterns = []string{strings.TrimSuffix(pkgpath, "_test")} // for go test
+	}
+	pkgs, err := packages.Load(cfg, patterns...)
 	if err != nil {
 		return nil, fmt.Errorf("packages.Load() %w", err)
 	}
