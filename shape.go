@@ -136,7 +136,7 @@ func (s *Struct) Doc() string {
 	if s.metadata == nil {
 		return ""
 	}
-	return s.metadata.Raw.Doc
+	return s.metadata.Doc()
 }
 
 func (s *Struct) Fields() FieldList {
@@ -212,7 +212,7 @@ func (iface *Interface) Doc() string {
 	if iface.metadata == nil {
 		return ""
 	}
-	return iface.metadata.Raw.Doc
+	return iface.metadata.Doc()
 }
 
 func (iface *Interface) Methods() VarList {
