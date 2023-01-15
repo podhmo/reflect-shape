@@ -51,6 +51,7 @@ func (e *Extractor) extract(rt reflect.Type, rv reflect.Value) *Shape {
 	name := rt.Name()
 	pkgPath := rt.PkgPath()
 	isMethod := false
+
 	if pkgPath == "" && id.pc != 0 {
 		fullname := runtime.FuncForPC(id.pc).Name()
 		parts := strings.Split(fullname, ".")
@@ -75,7 +76,7 @@ func (e *Extractor) extract(rt reflect.Type, rv reflect.Value) *Shape {
 		pkgName := parts[len(parts)-1]
 		pkg = &Package{
 			Name:  pkgName,
-			Path:  rt.PkgPath(),
+			Path:  pkgPath,
 			scope: &Scope{shapes: map[string]*Shape{}},
 		}
 		e.packages[pkgPath] = pkg
