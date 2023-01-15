@@ -1,4 +1,4 @@
-package neo_test
+package reflectshape_test
 
 import (
 	"context"
@@ -7,7 +7,7 @@ import (
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
-	"github.com/podhmo/reflect-shape/neo"
+	reflectshape "github.com/podhmo/reflect-shape"
 )
 
 type S0 struct{}
@@ -18,7 +18,7 @@ func F1()         {}
 func (s0 S0) M()  {}
 func (s1 *S1) M() {}
 
-var cfg = &neo.Config{IncludeGoTestFiles: true}
+var cfg = &reflectshape.Config{IncludeGoTestFiles: true}
 
 func TestIdentity(t *testing.T) {
 	type testcase struct {
@@ -36,7 +36,7 @@ func TestIdentity(t *testing.T) {
 			{msg: "same-method-pointer", x: new(S0).M, y: (S0{}).M},
 		}
 
-		cfg := &neo.Config{}
+		cfg := &reflectshape.Config{}
 		for _, c := range cases {
 			t.Run(c.msg, func(t *testing.T) {
 				x := cfg.Extract(c.x)
@@ -97,7 +97,7 @@ func TestPackageNames(t *testing.T) {
 	t.Run("one", func(t *testing.T) {
 		want := []string{"F0"}
 
-		cfg := &neo.Config{}
+		cfg := &reflectshape.Config{}
 		shape := cfg.Extract(F0)
 
 		if got := shape.Package.Scope().Names(); !reflect.DeepEqual(want, got) {
@@ -108,7 +108,7 @@ func TestPackageNames(t *testing.T) {
 	t.Run("many", func(t *testing.T) {
 		want := []string{"F1", "S0", "S1"}
 
-		cfg := &neo.Config{}
+		cfg := &reflectshape.Config{}
 
 		cfg.Extract(S0{})
 		cfg.Extract(&S0{})
@@ -168,7 +168,7 @@ func TestFunc(t *testing.T) {
 
 	for i, c := range cases {
 		c := c
-		cfg := &neo.Config{IncludeGoTestFiles: true, FillArgNames: c.fillArgNames, FillReturnNames: c.fillArgNames}
+		cfg := &reflectshape.Config{IncludeGoTestFiles: true, FillArgNames: c.fillArgNames, FillReturnNames: c.fillArgNames}
 		t.Run(fmt.Sprintf("case%d", i), func(t *testing.T) {
 			fn := cfg.Extract(c.fn).MustFunc()
 			t.Logf("%s", fn)
@@ -280,12 +280,14 @@ func UseContext(ctx context.Context) {}
 func TestInterface(t *testing.T) {
 	cases := []struct {
 		input   any
-		modify  func(*neo.Shape) *neo.Interface
+		modify  func(*reflectshape.Shape) *reflectshape.Interface
 		name    string
 		methods []string
 	}{
 		{name: "Context", input: UseContext, methods: []string{"Deadline", "Done", "Err", "Value"},
-			modify: func(s *neo.Shape) *neo.Interface { return s.MustFunc().Args()[0].Shape.MustInterface() }},
+			modify: func(s *reflectshape.Shape) *reflectshape.Interface {
+				return s.MustFunc().Args()[0].Shape.MustInterface()
+			}},
 	}
 
 	for i, c := range cases {
