@@ -74,13 +74,13 @@ type Bar struct {
 func motivation3() {
 	{
 		shape := cfg.Extract(Foo)
-		fmt.Println("Name", shape.Name, "kind", shape.Kind, "Doc", shape.MustFunc().Doc())
+		fmt.Println("Name", shape.Name, "kind", shape.Kind, "Doc", shape.Func().Doc())
 		// Output: Name Foo kind func Doc This is Foo
 	}
 	{
 		shape := cfg.Extract(&Bar{})
-		fmt.Println("Name", shape.Name, "kind", shape.Kind, "Doc", shape.MustStruct().Doc())
-		for _, f := range shape.MustStruct().Fields() {
+		fmt.Println("Name", shape.Name, "kind", shape.Kind, "Doc", shape.Struct().Doc())
+		for _, f := range shape.Struct().Fields() {
 			fmt.Println("--", "Field", f.Name, "kind", f.Shape.Kind, "Doc", f.Doc)
 		}
 		// Output: Name Bar kind struct Doc This is Bar
