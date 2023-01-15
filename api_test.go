@@ -195,7 +195,7 @@ func TestFunc(t *testing.T) {
 		c := c
 		cfg := &reflectshape.Config{IncludeGoTestFiles: true, FillArgNames: c.fillArgNames, FillReturnNames: c.fillArgNames}
 		t.Run(fmt.Sprintf("case%d", i), func(t *testing.T) {
-			fn := cfg.Extract(c.fn).MustFunc()
+			fn := cfg.Extract(c.fn).Func()
 			t.Logf("%s", fn)
 
 			{
@@ -237,7 +237,7 @@ func TestFunc(t *testing.T) {
 
 	t.Run("doc", func(t *testing.T) {
 		want := "This is Foo."
-		got := cfg.Extract(Foo).MustFunc().Doc()
+		got := cfg.Extract(Foo).Func().Doc()
 		if diff := cmp.Diff(want, got); diff != "" {
 			t.Errorf("Shape.Func().Doc(): -want, +got: \n%v", diff)
 		}
@@ -268,7 +268,7 @@ func TestStruct(t *testing.T) {
 	for i, c := range cases {
 		c := c
 		t.Run(fmt.Sprintf("case%d", i), func(t *testing.T) {
-			s := cfg.Extract(c.ob).MustStruct()
+			s := cfg.Extract(c.ob).Struct()
 			t.Logf("%s", s)
 
 			if want, got := c.name, s.Name(); want != got {
@@ -311,7 +311,7 @@ func TestInterface(t *testing.T) {
 	}{
 		{name: "Context", input: UseContext, methods: []string{"Deadline", "Done", "Err", "Value"},
 			modify: func(s *reflectshape.Shape) *reflectshape.Interface {
-				return s.MustFunc().Args()[0].Shape.MustInterface()
+				return s.Func().Args()[0].Shape.Interface()
 			}},
 	}
 
@@ -342,7 +342,7 @@ func TestInterface(t *testing.T) {
 // Ordering is desc or asc
 type Ordering string
 
-func TestType(t *testing.T) {
+func TestNamed(t *testing.T) {
 	cases := []struct {
 		input any
 		name  string
@@ -355,7 +355,7 @@ func TestType(t *testing.T) {
 	for i, c := range cases {
 		c := c
 		t.Run(fmt.Sprintf("case%d", i), func(t *testing.T) {
-			got := cfg.Extract(c.input).MustType()
+			got := cfg.Extract(c.input).Named()
 			t.Logf("%s", got)
 
 			if want, got := c.name, got.Name(); want != got {
