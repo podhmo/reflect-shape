@@ -275,13 +275,13 @@ func (f *Func) Args() VarList {
 	}
 
 	r := make([]*Var, typ.NumIn())
-	fillArgNames := f.Shape.e.Config.FillArgNames
+	needFillNames := f.Shape.e.Config.FillArgNames
 	for i := 0; i < typ.NumIn(); i++ {
 		rt := typ.In(i)
 		rv := rzero(rt)
 		shape := f.Shape.e.extract(rt, rv)
 		name := args[i]
-		if name == "" && fillArgNames {
+		if name == "" && needFillNames {
 			switch {
 			case rcontextType == rt:
 				name = "ctx"
@@ -303,7 +303,7 @@ func (f *Func) Returns() VarList {
 		args = make([]string, typ.NumOut())
 	}
 
-	fillArgNames := f.Shape.e.Config.FillArgNames
+	needFillNames := f.Shape.e.Config.FillReturnNames
 	errUsed := false
 	r := make([]*Var, typ.NumOut())
 	for i := 0; i < typ.NumOut(); i++ {
@@ -311,7 +311,7 @@ func (f *Func) Returns() VarList {
 		rv := rzero(rt)
 		shape := f.Shape.e.extract(rt, rv)
 		name := args[i]
-		if name == "" && fillArgNames {
+		if name == "" && needFillNames {
 			switch {
 			case rerrType == rt && errUsed:
 				name = fmt.Sprintf("err%d", i)
