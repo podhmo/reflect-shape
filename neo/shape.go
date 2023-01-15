@@ -23,6 +23,7 @@ type Shape struct {
 	DefaultValue reflect.Value
 
 	Number  int // If all shapes are from the same extractor, this value can be used as ID
+	Lv      int // pointer level. v is 0, *v is 1.
 	Package *Package
 	e       *Extractor
 }
