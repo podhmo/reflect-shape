@@ -97,7 +97,7 @@ func (s *Shape) MustType() *Type {
 
 	metadata, err := lookup.LookupFromTypeForReflectType(s.Type)
 	if err != nil {
-		log.Printf("MustFunc(): %+v", err)
+		log.Printf("MustType(): %+v", err)
 		return &Type{Shape: s}
 	}
 	return &Type{Shape: s, metadata: metadata}
