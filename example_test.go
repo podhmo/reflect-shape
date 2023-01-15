@@ -1,9 +1,9 @@
-package neo_test
+package reflectshape_test
 
 import (
 	"fmt"
 
-	"github.com/podhmo/reflect-shape/neo"
+	reflectshape "github.com/podhmo/reflect-shape"
 )
 
 // User is the object for User.
@@ -14,7 +14,7 @@ type User struct {
 }
 
 func ExampleConfig() {
-	cfg := neo.Config{IncludeGoTestFiles: true}
+	cfg := reflectshape.Config{IncludeGoTestFiles: true}
 	shape := cfg.Extract(User{})
 
 	fmt.Println(shape.Name, shape.Kind, shape.Package.Path)
@@ -23,7 +23,7 @@ func ExampleConfig() {
 	}
 
 	// Output:
-	// User struct github.com/podhmo/reflect-shape/neo_test
+	// User struct github.com/podhmo/reflect-shape_test
 	// -- Name name of User.
 	// -- Age age of User.
 }
