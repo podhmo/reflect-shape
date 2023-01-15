@@ -37,7 +37,7 @@ func (s *Shape) String() string {
 	return fmt.Sprintf("&Shape#%d{Name: %q, Kind: %v, Type: %v, Package: %v}", s.Number, s.Name, s.Kind, s.Type, s.Package.Name)
 }
 
-func (s *Shape) MustStruct() *Struct {
+func (s *Shape) Struct() *Struct {
 	if s.Kind != reflect.Struct {
 		panic(fmt.Sprintf("shape %v is not Struct kind, %s", s, s.Kind))
 	}
@@ -54,7 +54,7 @@ func (s *Shape) MustStruct() *Struct {
 	return &Struct{Shape: s, metadata: metadata}
 }
 
-func (s *Shape) MustInterface() *Interface {
+func (s *Shape) Interface() *Interface {
 	if s.Kind != reflect.Interface {
 		panic(fmt.Sprintf("shape %v is not Interface kind, %s", s, s.Kind))
 	}
@@ -71,7 +71,7 @@ func (s *Shape) MustInterface() *Interface {
 	return &Interface{Shape: s, metadata: metadata}
 }
 
-func (s *Shape) MustFunc() *Func {
+func (s *Shape) Func() *Func {
 	if s.Kind != reflect.Func && s.ID.pc == 0 {
 		panic(fmt.Sprintf("shape %v is not func kind, %s", s, s.Kind))
 	}
@@ -88,38 +88,38 @@ func (s *Shape) MustFunc() *Func {
 	return &Func{Shape: s, metadata: metadata}
 }
 
-func (s *Shape) MustType() *Type {
+func (s *Shape) Named() *Named {
 	// TODO: check
 	lookup := s.e.Lookup
 	if lookup == nil {
-		return &Type{Shape: s}
+		return &Named{Shape: s}
 	}
 
 	metadata, err := lookup.LookupFromTypeForReflectType(s.Type)
 	if err != nil {
 		log.Printf("MustType(): %+v", err)
-		return &Type{Shape: s}
+		return &Named{Shape: s}
 	}
-	return &Type{Shape: s, metadata: metadata}
+	return &Named{Shape: s, metadata: metadata}
 }
 
-type Type struct {
+type Named struct {
 	Shape    *Shape
 	metadata *metadata.Type
 }
 
-func (t *Type) Name() string {
+func (t *Named) Name() string {
 	return t.Shape.Name
 }
 
-func (t *Type) Doc() string {
+func (t *Named) Doc() string {
 	if t.metadata == nil {
 		return ""
 	}
 	return t.metadata.Doc()
 }
 
-func (t *Type) String() string {
+func (t *Named) String() string {
 	doc := t.Doc()
 	tsize := t.Shape.e.Config.DocTruncationSize
 	if len(doc) > tsize {

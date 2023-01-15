@@ -18,7 +18,7 @@ func ExampleConfig() {
 	shape := cfg.Extract(User{})
 
 	fmt.Println(shape.Name, shape.Kind, shape.Package.Path)
-	for _, f := range shape.MustStruct().Fields() {
+	for _, f := range shape.Struct().Fields() {
 		fmt.Println("--", f.Name, f.Doc)
 	}
 
