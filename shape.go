@@ -3,6 +3,7 @@ package reflectshape
 import (
 	"context"
 	"fmt"
+	"log"
 	"reflect"
 
 	"github.com/podhmo/reflect-shape/metadata"
@@ -47,7 +48,8 @@ func (s *Shape) MustStruct() *Struct {
 
 	metadata, err := lookup.LookupFromTypeForReflectType(s.Type)
 	if err != nil {
-		panic(err)
+		log.Printf("MustStruct(): %+v", err)
+		return &Struct{Shape: s}
 	}
 	return &Struct{Shape: s, metadata: metadata}
 }
@@ -63,7 +65,8 @@ func (s *Shape) MustInterface() *Interface {
 
 	metadata, err := lookup.LookupFromTypeForReflectType(s.Type)
 	if err != nil {
-		panic(err)
+		log.Printf("MustInterface(): %+v", err)
+		return &Interface{Shape: s}
 	}
 	return &Interface{Shape: s, metadata: metadata}
 }
@@ -79,7 +82,8 @@ func (s *Shape) MustFunc() *Func {
 
 	metadata, err := lookup.LookupFromFuncForPC(s.ID.pc)
 	if err != nil {
-		panic(err)
+		log.Printf("MustFunc(): %+v", err)
+		return &Func{Shape: s}
 	}
 	return &Func{Shape: s, metadata: metadata}
 }
@@ -93,7 +97,8 @@ func (s *Shape) MustType() *Type {
 
 	metadata, err := lookup.LookupFromTypeForReflectType(s.Type)
 	if err != nil {
-		panic(err)
+		log.Printf("MustType(): %+v", err)
+		return &Type{Shape: s}
 	}
 	return &Type{Shape: s, metadata: metadata}
 }
