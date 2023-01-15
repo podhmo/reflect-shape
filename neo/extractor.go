@@ -26,9 +26,11 @@ func (e *Extractor) Extract(ob interface{}) *Shape {
 }
 
 func (e *Extractor) extract(rt reflect.Type, rv reflect.Value) *Shape {
+	lv := 0
 	for rt.Kind() == reflect.Pointer {
 		rt = rt.Elem()
 		rv = rv.Elem()
+		lv++
 	}
 
 	id := ID{rt: rt}
@@ -38,7 +40,12 @@ func (e *Extractor) extract(rt reflect.Type, rv reflect.Value) *Shape {
 
 	shape, ok := e.seen[id]
 	if ok {
-		return shape
+		if lv == 0 {
+			return shape
+		}
+		copied := *shape
+		copied.Lv = lv
+		return &copied
 	}
 
 	name := rt.Name()
@@ -87,7 +94,13 @@ func (e *Extractor) extract(rt reflect.Type, rv reflect.Value) *Shape {
 	}
 	e.seen[id] = shape
 	pkg.scope.shapes[name] = shape
-	return shape
+
+	if lv == 0 {
+		return shape
+	}
+	copied := *shape
+	copied.Lv = lv
+	return &copied
 }
 
 type Package struct {

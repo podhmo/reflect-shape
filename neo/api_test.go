@@ -67,6 +67,31 @@ func TestIdentity(t *testing.T) {
 		}
 	})
 }
+func TestPointerLevel(t *testing.T) {
+	type testcase struct {
+		msg   string
+		input any
+		lv    int
+	}
+
+	cases := []testcase{
+		{msg: "zero", input: S0{}, lv: 0},
+		{msg: "one", input: &S0{}, lv: 1},
+		{msg: "two", input: func() **S0 { s := new(S0); return &s }(), lv: 2},
+		{msg: "zero-int", input: 0, lv: 0},
+		{msg: "zero-slice", input: []S0{}, lv: 0},
+		{msg: "one-slice", input: &[]S0{}, lv: 1},
+	}
+
+	for _, c := range cases {
+		t.Run(c.msg, func(t *testing.T) {
+			s := cfg.Extract(c.input)
+			if want, got := c.lv, s.Lv; want != got {
+				t.Errorf("Shape.Lv, must be want:%v == got:%v", want, got)
+			}
+		})
+	}
+}
 
 func TestPackageNames(t *testing.T) {
 	t.Run("one", func(t *testing.T) {
