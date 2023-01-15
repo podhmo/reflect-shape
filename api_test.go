@@ -93,7 +93,32 @@ func TestPointerLevel(t *testing.T) {
 	}
 }
 
-func TestPackageNames(t *testing.T) {
+func TestPackagePath(t *testing.T) {
+	cases := []struct {
+		msg     string
+		input   any
+		pkgpath string
+	}{
+		{msg: "struct", input: S0{}, pkgpath: "github.com/podhmo/reflect-shape_test"},
+		{msg: "struct-pointer", input: &S0{}, pkgpath: "github.com/podhmo/reflect-shape_test"},
+		{msg: "func", input: F0, pkgpath: "github.com/podhmo/reflect-shape_test"},
+		{msg: "slice", input: []S0{}, pkgpath: ""},
+		// stdlib
+		{msg: "int", input: int(0), pkgpath: ""},
+		{msg: "stdlib-func", input: t.Run, pkgpath: "testing"},
+	}
+	for _, c := range cases {
+		c := c
+		t.Run(c.msg, func(t *testing.T) {
+			shape := cfg.Extract(c.input)
+			if want, got := c.pkgpath, shape.Package.Path; want != got {
+				t.Errorf("Shape.Package.Path: %#+v != %#+v", want, got)
+			}
+		})
+	}
+}
+
+func TestPackageScopeNames(t *testing.T) {
 	t.Run("one", func(t *testing.T) {
 		want := []string{"F0"}
 
