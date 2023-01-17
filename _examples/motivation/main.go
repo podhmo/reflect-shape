@@ -63,8 +63,12 @@ func motivation2() {
 	}
 }
 
-// This is Foo
-func Foo() {}
+// This is Hello
+func Hello(
+	name string, // name of target
+) {
+	fmt.Println("hello", name)
+}
 
 // This is Bar
 type Bar struct {
@@ -73,9 +77,13 @@ type Bar struct {
 
 func motivation3() {
 	{
-		shape := cfg.Extract(Foo)
+		shape := cfg.Extract(Hello)
 		fmt.Println("Name", shape.Name, "kind", shape.Kind, "Doc", shape.Func().Doc())
-		// Output: Name Foo kind func Doc This is Foo
+		for _, a := range shape.Func().Args() {
+			fmt.Println("--", "Arg", a.Name, "kind", a.Shape.Kind, "Doc", a.Doc)
+		}
+		// Output: Name Hello kind func Doc This is Hello
+		// -- Arg name kind string Doc name of target
 	}
 	{
 		shape := cfg.Extract(&Bar{})

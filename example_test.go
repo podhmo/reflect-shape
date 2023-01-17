@@ -13,17 +13,30 @@ type User struct {
 	Age  int // age of User.
 }
 
+// Hello function.
+func Hello(user *User /* greeting target */) {
+	fmt.Println("Hello", user.Name)
+}
+
 func ExampleConfig() {
 	cfg := reflectshape.Config{IncludeGoTestFiles: true}
 	shape := cfg.Extract(User{})
 
-	fmt.Println(shape.Name, shape.Kind, shape.Package.Path)
+	fmt.Printf("%s %s %s %q\n", shape.Name, shape.Kind, shape.Package.Path, shape.Struct().Doc())
 	for _, f := range shape.Struct().Fields() {
-		fmt.Println("--", f.Name, f.Doc)
+		fmt.Printf("-- %s %q\n", f.Name, f.Doc)
+	}
+
+	shape2 := cfg.Extract(Hello)
+	fmt.Printf("%s %s %s %q\n", shape2.Name, shape2.Kind, shape2.Package.Path, shape2.Func().Doc())
+	for _, a := range shape2.Func().Args() {
+		fmt.Printf("-- %s %q\n", a.Name, a.Doc)
 	}
 
 	// Output:
-	// User struct github.com/podhmo/reflect-shape_test
-	// -- Name name of User.
-	// -- Age age of User.
+	// User struct github.com/podhmo/reflect-shape_test "User is the object for User."
+	// -- Name "name of User."
+	// -- Age "age of User."
+	// Hello func github.com/podhmo/reflect-shape_test "Hello function."
+	// -- user "greeting target"
 }

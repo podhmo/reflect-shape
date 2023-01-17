@@ -79,6 +79,19 @@ func (m *Func) Args() []string {
 	return names
 }
 
+func (m *Func) ArgComments() map[string]string {
+	comments := make(map[string]string, len(m.Raw.ParamNames))
+	for _, id := range m.Raw.ParamNames {
+		p := m.Raw.Params[id]
+		doc := p.Doc
+		if doc == "" {
+			doc = p.Comment
+		}
+		comments[id] = strings.TrimSpace(doc)
+	}
+	return comments
+}
+
 func (m *Func) Returns() []string {
 	names := make([]string, len(m.Raw.ReturnNames))
 	for i, id := range m.Raw.ReturnNames {
