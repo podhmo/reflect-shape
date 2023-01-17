@@ -274,10 +274,13 @@ func (f *Func) IsVariadic() bool {
 func (f *Func) Args() VarList {
 	typ := f.Shape.Type
 	var args []string
+	var comments map[string]string
 	if f.metadata != nil {
 		args = f.metadata.Args()
+		comments = f.metadata.ArgComments()
 	} else {
 		args = make([]string, typ.NumIn())
+		comments = map[string]string{}
 	}
 
 	r := make([]*Var, typ.NumIn())
@@ -295,7 +298,7 @@ func (f *Func) Args() VarList {
 				name = fmt.Sprintf("arg%d", i)
 			}
 		}
-		r[i] = &Var{Name: name, Shape: shape}
+		r[i] = &Var{Name: name, Shape: shape, Doc: comments[name]}
 	}
 	return VarList(r)
 }
