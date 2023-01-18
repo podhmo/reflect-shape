@@ -46,10 +46,9 @@ func (s *Shape) Struct() *Struct {
 		panic(fmt.Sprintf("shape %v is not Struct kind, %s", s, s.Kind))
 	}
 	lookup := s.e.Lookup
-	if lookup == nil {
+	if lookup == nil || s.Name == "" {
 		return &Struct{Shape: s}
 	}
-
 	metadata, err := lookup.LookupFromTypeForReflectType(s.Type)
 	if err != nil {
 		log.Printf("MustStruct(): %+v", err)
@@ -63,7 +62,7 @@ func (s *Shape) Interface() *Interface {
 		panic(fmt.Sprintf("shape %v is not Interface kind, %s", s, s.Kind))
 	}
 	lookup := s.e.Lookup
-	if lookup == nil {
+	if lookup == nil || s.Name == "" {
 		return &Interface{Shape: s}
 	}
 
@@ -80,7 +79,7 @@ func (s *Shape) Func() *Func {
 		panic(fmt.Sprintf("shape %v is not func kind, %s", s, s.Kind))
 	}
 	lookup := s.e.Lookup
-	if lookup == nil {
+	if lookup == nil || s.Name == "" {
 		return &Func{Shape: s}
 	}
 
@@ -95,7 +94,7 @@ func (s *Shape) Func() *Func {
 func (s *Shape) Named() *Named {
 	// TODO: check
 	lookup := s.e.Lookup
-	if lookup == nil {
+	if lookup == nil || s.Name == "" {
 		return &Named{Shape: s}
 	}
 
