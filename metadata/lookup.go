@@ -271,7 +271,7 @@ func (l *Lookup) LookupFromType(ob interface{}) (*Type, error) {
 	return l.LookupFromTypeForReflectType(rt)
 }
 func (l *Lookup) LookupFromTypeForReflectType(rt reflect.Type) (*Type, error) {
-	obname := rt.Name()
+	obname, _, _ := strings.Cut(rt.Name(), "[") // for generics
 	pkgpath := rt.PkgPath()
 
 	if pkgpath == "main" {
