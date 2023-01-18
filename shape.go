@@ -83,7 +83,7 @@ func (s *Shape) Func() *Func {
 		panic(fmt.Sprintf("shape %v is not func kind, %s", s, s.Kind))
 	}
 	lookup := s.e.Lookup
-	if lookup == nil || s.Name == "" || anonymousFuncNameRegex.MatchString(s.Name) {
+	if lookup == nil || s.Name == "" || (s.Package.Path == "" && anonymousFuncNameRegex.MatchString(s.Name)) {
 		return &Func{Shape: s}
 	}
 
