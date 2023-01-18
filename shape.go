@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 	"reflect"
+	"regexp"
 
 	"github.com/podhmo/reflect-shape/metadata"
 )
@@ -75,12 +76,14 @@ func (s *Shape) Interface() *Interface {
 	return &Interface{Shape: s, metadata: metadata}
 }
 
+var anonymousFuncNameRegex = regexp.MustCompile(`func\d+$`)
+
 func (s *Shape) Func() *Func {
 	if s.Kind != reflect.Func && s.ID.pc == 0 {
 		panic(fmt.Sprintf("shape %v is not func kind, %s", s, s.Kind))
 	}
 	lookup := s.e.Lookup
-	if lookup == nil || s.Name == "" {
+	if lookup == nil || s.Name == "" || anonymousFuncNameRegex.MatchString(s.Name) {
 		return &Func{Shape: s}
 	}
 
