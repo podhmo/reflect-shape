@@ -33,6 +33,10 @@ func (s *Shape) Equal(another *Shape) bool {
 	return s.ID == another.ID
 }
 
+func (s *Shape) FullName() string {
+	return fmt.Sprintf("%s.%s", s.Package.Path, s.Name)
+}
+
 func (s *Shape) String() string {
 	return fmt.Sprintf("&Shape#%d{Name: %q, Kind: %v, Type: %v, Package: %v}", s.Number, s.Name, s.Kind, s.Type, s.Package.Name)
 }
@@ -180,6 +184,10 @@ func (s *Struct) String() string {
 }
 
 type FieldList []*Field
+
+func (fl FieldList) Len() int {
+	return len(fl)
+}
 
 func (fl FieldList) String() string {
 	parts := make([]string, len(fl))
@@ -374,6 +382,10 @@ func (f *Func) String() string {
 }
 
 type VarList []*Var
+
+func (vl VarList) Len() int {
+	return len(vl)
+}
 
 func (vl VarList) String() string {
 	parts := make([]string, len(vl))
