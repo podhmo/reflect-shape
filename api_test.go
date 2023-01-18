@@ -242,9 +242,13 @@ func TestFunc(t *testing.T) {
 			t.Errorf("Shape.Func().Doc(): -want, +got: \n%v", diff)
 		}
 	})
-
 	// PANIC (not supported)
 	// fmt.Println(cfg.Extract(func(fmt string, args ...any) {}).MustFunc())
+}
+
+// Wrap type
+type Wrap[T any] struct {
+	Value T
 }
 
 // Person object
@@ -298,6 +302,14 @@ func TestStruct(t *testing.T) {
 			}
 		})
 	}
+
+	t.Run("doc-generics", func(t *testing.T) {
+		want := "Wrap type"
+		got := cfg.Extract(Wrap[int]{Value: 10}).Struct().Doc()
+		if diff := cmp.Diff(want, got); diff != "" {
+			t.Errorf("Shape.Struct().Doc(): -want, +got: \n%v", diff)
+		}
+	})
 }
 
 func UseContext(ctx context.Context) {}
