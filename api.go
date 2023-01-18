@@ -30,7 +30,7 @@ func (c *Config) Extract(ob interface{}) *Shape {
 	if c.lookup == nil && !c.SkipComments {
 		c.lookup = metadata.NewLookup(token.NewFileSet())
 		c.lookup.IncludeGoTestFiles = c.IncludeGoTestFiles
-		// c.lookup.IncludeUnexported = c.Inc
+		c.lookup.IncludeUnexported = true
 	}
 	if c.extractor == nil {
 		c.extractor = &Extractor{
