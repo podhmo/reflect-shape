@@ -49,6 +49,7 @@ func (s *Shape) Struct() *Struct {
 	if lookup == nil || s.Name == "" {
 		return &Struct{Shape: s}
 	}
+
 	metadata, err := lookup.LookupFromTypeForReflectType(s.Type)
 	if err != nil {
 		log.Printf("MustStruct(): %+v", err)
