@@ -174,7 +174,6 @@ func FooWithVariadicArgs(ctx context.Context, name string, nickname *string, arg
 func TestFunc(t *testing.T) {
 	cases := []struct {
 		fn           any
-		name         string
 		args         []string
 		returns      []string
 		isMethod     bool
