@@ -27,6 +27,11 @@ func IsZeroRecursive(rt reflect.Type, rv reflect.Value) bool {
 			}
 		}
 		return true
+	case reflect.Pointer:
+		if rv.IsNil() {
+			return true
+		}
+		return IsZeroRecursive(rt.Elem(), rv.Elem())
 	// case reflect.Invalid:
 	// case reflect.Uintptr, reflect.Array, reflect.Chan, reflect.Func, reflect.Interface, reflect.Map, reflect.Pointer, reflect.Slice, reflect.UnsafePointer:
 	default:
