@@ -284,14 +284,11 @@ func (f *Func) IsVariadic() bool {
 
 func (f *Func) Args() VarList {
 	typ := f.Shape.Type
-	var args []string
-	var comments map[string]string
+	var args []metadata.Var
 	if f.metadata != nil {
 		args = f.metadata.Args()
-		comments = f.metadata.ArgComments()
 	} else {
-		args = make([]string, typ.NumIn())
-		comments = map[string]string{}
+		args = make([]metadata.Var, typ.NumIn())
 	}
 
 	r := make([]*Var, typ.NumIn())
@@ -300,7 +297,8 @@ func (f *Func) Args() VarList {
 		rt := typ.In(i)
 		rv := rzero(rt)
 		shape := f.Shape.e.extract(rt, rv)
-		name := args[i]
+		p := args[i]
+		name := p.Name
 		if name == "" && needFillNames {
 			switch {
 			case rcontextType == rt:
@@ -309,18 +307,18 @@ func (f *Func) Args() VarList {
 				name = fmt.Sprintf("arg%d", i)
 			}
 		}
-		r[i] = &Var{Name: name, Shape: shape, Doc: comments[name]}
+		r[i] = &Var{Name: name, Shape: shape, Doc: p.Doc}
 	}
 	return VarList(r)
 }
 
 func (f *Func) Returns() VarList {
 	typ := f.Shape.Type
-	var args []string
+	var args []metadata.Var
 	if f.metadata != nil {
 		args = f.metadata.Returns()
 	} else {
-		args = make([]string, typ.NumOut())
+		args = make([]metadata.Var, typ.NumOut())
 	}
 
 	needFillNames := f.Shape.e.Config.FillReturnNames
@@ -330,7 +328,8 @@ func (f *Func) Returns() VarList {
 		rt := typ.Out(i)
 		rv := rzero(rt)
 		shape := f.Shape.e.extract(rt, rv)
-		name := args[i]
+		p := args[i]
+		name := p.Name
 		if name == "" && needFillNames {
 			switch {
 			case rerrType == rt && errUsed:
@@ -342,7 +341,7 @@ func (f *Func) Returns() VarList {
 				name = fmt.Sprintf("ret%d", i)
 			}
 		}
-		r[i] = &Var{Name: name, Shape: shape}
+		r[i] = &Var{Name: name, Shape: shape, Doc: p.Doc}
 	}
 	return VarList(r)
 }
