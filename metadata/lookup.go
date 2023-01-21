@@ -134,7 +134,7 @@ func (l *Lookup) LookupFromFuncForPC(pc uintptr) (*Func, error) {
 		name = recv
 		recv = ""
 	}
-	// log.Printf("pkgname:%-15s\trecv:%-10s\tname:%s\n", pkgname, recv, name)
+	// log.Printf("pkgname:%-15s\trecv:%-10s\tname:%s\tisMethod:%v\n", pkgname, recv, name, isMethod)
 
 	pkgpath := rfuncPkgpath(rfunc)
 	p0, ok := l.cache[pkgpath]
@@ -179,14 +179,34 @@ func (l *Lookup) LookupFromFuncForPC(pc uintptr) (*Func, error) {
 				if !ok {
 					break
 				}
-				result, ok := f.Functions[name]
-				if !ok {
-					return nil, fmt.Errorf("lookup metadata of %s is failed.. %w", rfunc.Name(), ErrNotFound)
+
+				if isMethod {
+					ob, ok := f.Types[recv]
+					if !ok {
+						// anonymous function? (TODO: correct check)
+						if _, ok := p0.Functions[name]; !ok {
+							return nil, fmt.Errorf("lookup metadata of anonymous function %s, %w", rfunc.Name(), ErrNotSupported)
+						}
+						return nil, fmt.Errorf("lookup metadata of method %s, %w", rfunc.Name(), ErrNotFound)
+					}
+					result, ok := ob.Methods[name]
+					if !ok {
+						return nil, fmt.Errorf("lookup metadata of method %s, %w", rfunc.Name(), ErrNotFound)
+					}
+					if DEBUG {
+						log.Println("\tOK func cache", rfunc.Name())
+					}
+					return &Func{pc: pc, Raw: result, Recv: recv}, nil
+				} else {
+					result, ok := f.Functions[name]
+					if !ok {
+						return nil, fmt.Errorf("lookup metadata of %s is failed.. %w", rfunc.Name(), ErrNotFound)
+					}
+					if DEBUG {
+						log.Println("\tOK func cache", rfunc.Name())
+					}
+					return &Func{pc: pc, Raw: result}, nil
 				}
-				if DEBUG {
-					log.Println("\tOK func cache", rfunc.Name())
-				}
-				return &Func{pc: pc, Raw: result}, nil
 			}
 		}
 	}
