@@ -76,10 +76,14 @@ func TestFunc(t *testing.T) {
 	if err != nil {
 		t.Fatalf("unexpected error: %+v", err)
 	}
+	var args []string
+	for _, p := range metadata.Args() {
+		args = append(args, p.Name)
+	}
 	got := result{
 		Name: metadata.Name(),
 		Doc:  metadata.Doc(),
-		Args: metadata.Args(),
+		Args: args,
 	}
 
 	if diff := cmp.Diff(want, got); diff != "" {
@@ -141,11 +145,21 @@ func TestMethod(t *testing.T) {
 			if err != nil {
 				t.Fatalf("unexpected error: %+v", err)
 			}
+
+			var args []string
+			for _, p := range metadata.Args() {
+				args = append(args, p.Name)
+			}
+			var returns []string
+			for _, p := range metadata.Returns() {
+				returns = append(returns, p.Name)
+			}
+
 			got := result{
 				Name:    metadata.Name(),
 				Doc:     metadata.Doc(),
-				Args:    metadata.Args(),
-				Returns: metadata.Returns(),
+				Args:    args,
+				Returns: returns,
 			}
 
 			if diff := cmp.Diff(c.want, got); diff != "" {
