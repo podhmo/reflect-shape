@@ -52,7 +52,7 @@ func (e *Extractor) extract(rt reflect.Type, rv reflect.Value) *Shape {
 	pkgPath := rt.PkgPath()
 	isMethod := false
 
-	if pkgPath == "" && id.pc != 0 {
+	if id.pc != 0 { // is function?
 		fullname := runtime.FuncForPC(id.pc).Name()
 		parts := strings.Split(fullname, ".")
 
