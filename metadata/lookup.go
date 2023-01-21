@@ -71,33 +71,35 @@ func (m *Func) Doc() string {
 	return strings.TrimSpace(m.Raw.Doc)
 }
 
-func (m *Func) Args() []string {
-	names := make([]string, len(m.Raw.ParamNames))
-	for i, id := range m.Raw.ParamNames {
-		names[i] = m.Raw.Params[id].Name
-	}
-	return names
+type Var struct {
+	Name string
+	Doc  string
 }
 
-func (m *Func) ArgComments() map[string]string {
-	comments := make(map[string]string, len(m.Raw.ParamNames))
-	for _, id := range m.Raw.ParamNames {
+func (m *Func) Args() []Var {
+	vars := make([]Var, len(m.Raw.ParamNames))
+	for i, id := range m.Raw.ParamNames {
 		p := m.Raw.Params[id]
 		doc := p.Doc
 		if doc == "" {
 			doc = p.Comment
 		}
-		comments[id] = strings.TrimSpace(doc)
+		vars[i] = Var{Name: m.Raw.Params[id].Name, Doc: strings.TrimSpace(doc)}
 	}
-	return comments
+	return vars
 }
 
-func (m *Func) Returns() []string {
-	names := make([]string, len(m.Raw.ReturnNames))
+func (m *Func) Returns() []Var {
+	vars := make([]Var, len(m.Raw.ReturnNames))
 	for i, id := range m.Raw.ReturnNames {
-		names[i] = m.Raw.Returns[id].Name
+		p := m.Raw.Returns[id]
+		doc := p.Doc
+		if doc == "" {
+			doc = p.Comment
+		}
+		vars[i] = Var{Name: m.Raw.Returns[id].Name, Doc: strings.TrimSpace(doc)}
 	}
-	return names
+	return vars
 }
 
 func (l *Lookup) LookupFromFunc(fn interface{}) (*Func, error) {
