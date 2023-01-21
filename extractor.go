@@ -61,7 +61,7 @@ func (e *Extractor) extract(rt reflect.Type, rv reflect.Value) *Shape {
 			// @@ github.com/podhmo/reflect-shape/neo_test.S0.M-fm
 			// @@ github.com/podhmo/reflect-shape/neo_test.(*S1).M-fm
 			pkgPath = strings.Join(parts[:len(parts)-2], ".")
-			name = fmt.Sprintf("%s.%s", strings.Trim(parts[len(parts)-2], "(*)"), parts[len(parts)-1])
+			name = fmt.Sprintf("%s.%s", strings.Trim(parts[len(parts)-2], "(*)"), strings.TrimSuffix(parts[len(parts)-1], "-fm"))
 		} else {
 			// @@ github.com/podhmo/reflect-shape/neo_test.F1
 			// @@ github.com/podhmo/reflect-shape/neo_test.S0
