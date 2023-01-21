@@ -174,6 +174,7 @@ func FooWithVariadicArgs(ctx context.Context, name string, nickname *string, arg
 func TestFunc(t *testing.T) {
 	cases := []struct {
 		fn           any
+		name         string
 		args         []string
 		returns      []string
 		isMethod     bool
@@ -234,6 +235,14 @@ func TestFunc(t *testing.T) {
 			}
 		})
 	}
+
+	t.Run("method-name", func(t *testing.T) {
+		want := "S0.M"
+		got := cfg.Extract(new(S0).M).Name
+		if diff := cmp.Diff(want, got); diff != "" {
+			t.Errorf("Shape.Func().Name: -want, +got: \n%v", diff)
+		}
+	})
 
 	t.Run("doc", func(t *testing.T) {
 		want := "This is Foo."
