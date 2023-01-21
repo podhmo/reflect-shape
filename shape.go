@@ -414,7 +414,7 @@ func (v *Var) String() string {
 
 func rzero(rt reflect.Type) reflect.Value {
 	// TODO: fixme
-	return reflect.New(rt)
+	return reflect.New(rt).Elem()
 }
 
 var (
