@@ -14,7 +14,7 @@ type Config struct {
 
 	DocTruncationSize int
 
-	Extractor *Extractor
+	extractor *Extractor
 	lookup    *metadata.Lookup
 }
 
@@ -32,13 +32,17 @@ func (c *Config) Extract(ob interface{}) *Shape {
 		c.lookup.IncludeGoTestFiles = c.IncludeGoTestFiles
 		c.lookup.IncludeUnexported = true
 	}
-	if c.Extractor == nil {
-		c.Extractor = &Extractor{
+	if c.extractor == nil {
+		c.extractor = &Extractor{
 			Config:   c,
 			Lookup:   c.lookup,
 			seen:     map[ID]*Shape{},
 			packages: map[string]*Package{},
 		}
 	}
-	return c.Extractor.Extract(ob)
+	return c.extractor.Extract(ob)
+}
+
+func (c *Config) Visited() map[ID]*Shape {
+	return c.extractor.Visited()
 }
