@@ -1,7 +1,7 @@
 github.com/google/go-cmp v0.5.9 h1:O2Tfq5qg4qc4AmwVlvv0oLiVAGB7enBSJ2x2DqQFi38=
 github.com/google/go-cmp v0.5.9/go.mod h1:17dUlkBOakJ0+DkrSSNjCkIjxS6bF9zb3elmeNGIjoY=
-github.com/podhmo/commentof v0.1.2 h1:oP+9qTuqd5fLk61zBhN50ajNPmEq+QHENZRWbLCY400=
-github.com/podhmo/commentof v0.1.2/go.mod h1:/b9ZdDmLkdGRZForYUR0tUMkNd0EY9CmBEd84tiP2U0=
+github.com/podhmo/commentof v0.1.3 h1:y8pIaPYKXssNxo5wRmYH8TCqIyNjMU9WI181x4X6Ddg=
+github.com/podhmo/commentof v0.1.3/go.mod h1:/b9ZdDmLkdGRZForYUR0tUMkNd0EY9CmBEd84tiP2U0=
 golang.org/x/mod v0.7.0 h1:LapD9S96VoQRhi/GrNTqeBJFrUjs5UHCAtTlgwA5oZA=
 golang.org/x/mod v0.7.0/go.mod h1:iBbtSCu2XBx23ZKBPSOrRkjjQPZFPuis4dIYUhu/chs=
 golang.org/x/sync v0.1.0 h1:wsuoTGHzEhffawBOhz5CYhcrV4IdKZbEyZjBMuTp12o=
