@@ -18,6 +18,10 @@ type Extractor struct {
 	packages map[string]*Package
 }
 
+func (e *Extractor) Visited() map[ID]*Shape {
+	return e.seen
+}
+
 func (e *Extractor) Extract(ob interface{}) *Shape {
 	// TODO: only handling *T
 	rt := reflect.TypeOf(ob)
