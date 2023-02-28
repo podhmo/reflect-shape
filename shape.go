@@ -3,6 +3,7 @@ package reflectshape
 import (
 	"context"
 	"fmt"
+	"go/token"
 	"log"
 	"reflect"
 	"regexp"
@@ -119,6 +120,10 @@ func (t *Named) Name() string {
 	return t.Shape.Name
 }
 
+func (t *Named) Pos() token.Pos {
+	return t.metadata.Raw.Pos
+}
+
 func (t *Named) Doc() string {
 	if t.metadata == nil {
 		return ""
@@ -142,6 +147,10 @@ type Struct struct {
 
 func (s *Struct) Name() string {
 	return s.Shape.Name
+}
+
+func (s *Struct) Pos() token.Pos {
+	return s.metadata.Raw.Pos
 }
 
 func (s *Struct) Doc() string {
@@ -224,6 +233,10 @@ func (iface *Interface) Name() string {
 	return iface.Shape.Name
 }
 
+func (iface *Interface) Pos() token.Pos {
+	return iface.metadata.Raw.Pos
+}
+
 func (iface *Interface) Doc() string {
 	if iface.metadata == nil {
 		return ""
@@ -273,6 +286,10 @@ type Func struct {
 
 func (f *Func) Name() string {
 	return f.Shape.Name
+}
+
+func (f *Func) Pos() token.Pos {
+	return f.metadata.Raw.Pos
 }
 
 func (f *Func) IsMethod() bool {
