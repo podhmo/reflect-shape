@@ -14,6 +14,7 @@ type Config struct {
 
 	DocTruncationSize int
 
+	Fset      *token.FileSet
 	extractor *Extractor
 	lookup    *metadata.Lookup
 }
@@ -28,7 +29,10 @@ func (c *Config) Extract(ob interface{}) *Shape {
 	}
 
 	if c.lookup == nil && !c.SkipComments {
-		c.lookup = metadata.NewLookup(token.NewFileSet())
+		if c.Fset == nil {
+			c.Fset = token.NewFileSet()
+		}
+		c.lookup = metadata.NewLookup(c.Fset)
 		c.lookup.IncludeGoTestFiles = c.IncludeGoTestFiles
 		c.lookup.IncludeUnexported = true
 	}
